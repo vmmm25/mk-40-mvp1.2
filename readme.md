@@ -1,4 +1,4 @@
-# 🤖 MARK XXXIX (39) — J.A.R.V.I.S Series
+# 🤖 MARK XL (40) — J.A.R.V.I.S Series
 ### El Asistente Personal de Inteligencia Artificial Definitivo
 **Desarrollado por: lolpl** 🚀
 
@@ -6,7 +6,7 @@
 
 ## 📝 Descripción del Proyecto
 > [!NOTE]
-> **MARK XXXIX es un potente asistente de IA personal, multiplataforma y en tiempo real. Funciona localmente sin suscripciones, utilizando diálogo de voz natural, análisis avanzado de documentos y visión por computadora para comprender la pantalla y ejecutar flujos de automatización complejos de forma autónoma con una interfaz HUD interactiva cyberpunk.**
+> **MARK XL es un potente asistente de IA personal, multiplataforma y en tiempo real. Funciona localmente sin suscripciones, utilizando diálogo de voz natural, análisis avanzado de documentos y visión por computadora para comprender la pantalla y ejecutar flujos de automatización complejos de forma autónoma con una interfaz HUD interactiva cyberpunk.**
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## ⚡ Guía de Instalación y Configuración
 
-Sigue estos sencillos pasos para tener tu **MARK XXXIX** listo y funcionando en cualquier PC con Windows 10 u 11.
+Sigue estos sencillos pasos para tener tu **MARK XL** listo y funcionando en cualquier PC con Windows 10 u 11.
 
 ### 1. Clonar el Repositorio
 Abre tu consola de comandos (Terminal, Git CMD o PowerShell) y clona el proyecto:

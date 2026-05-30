@@ -1,6 +1,6 @@
 """OpenRouter client for internal action routing.
 
-Mark XXXIX-OR pattern: actions route their LLM calls through OpenRouter
+Mark XL-OR pattern: actions route their LLM calls through OpenRouter
 instead of using the main Gemini Live provider directly, saving Gemini quota.
 
 Imports:
