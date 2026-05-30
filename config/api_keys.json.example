@@ -1,0 +1,21 @@
+{
+  "gemini_api_key": "",
+  "openrouter_api_key": "",
+  "ollama_url": "http://localhost:11434",
+  "selected_provider": "gemini",
+  "model": "gemini-2.0-flash-exp",
+  "os_system": "windows",
+  "audio_input_device": null,
+  "audio_output_device": null,
+  "audio_volume": 80,
+  "model_openrouter": "google/gemma-4-31b-it:free",
+  "model_ollama": "llama3.2",
+  "voice_wrapper_enabled": false,
+  "stt_engine": "gemini",
+  "tts_engine": "gemini",
+  "whisper_path": "",
+  "whisper_model": "",
+  "piper_path": "",
+  "piper_model": "",
+  "model_lmstudio": ""
+}

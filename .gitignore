@@ -1,0 +1,89 @@
+# ==============================================================================
+# J.A.R.V.I.S — MARK XL Git Ignore Configuration
+# ==============================================================================
+
+# --- Secrets & API Keys ---
+# Local keys and configuration profiles containing active API tokens.
+config/api_keys.json
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+secrets.json
+
+# --- User Data & Memory ---
+# Dynamically saved user long-term memory, personality profiles, and interaction logs.
+memory/*.json
+!memory/config_manager.py # Ensure config manager script itself is NOT ignored
+logs/
+*.log
+
+# --- Large Binaries & Voice/STT Engines ---
+# Large local engines, model files (ONNX, GGML, bin), and downloaded executables.
+bin/
+*.bin
+*.onnx
+*.exe
+*.dll
+*.so
+*.dylib
+
+# --- Audio Temporary Files ---
+# WAV files created during VAD recording or speech synthesis.
+temp_input.wav
+*.wav
+*.mp3
+*.pcm
+*.raw
+
+# --- Python Cache & Build Artifacts ---
+# Pycache, virtual environments, eggs, and compilation outputs.
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- OpenCode / Omo Configuration ---
+.omo/
+.opencode/
+.pytest_cache/
+.pytest/
+
+# --- IDEs & OS Files ---
+# Visual Studio Code, PyCharm, and system temporary files.
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
