@@ -155,7 +155,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     def _build_btn(self, txt, color=C.PRI, h=30, w=None, bold=True):
         btn = QPushButton(txt)
@@ -315,7 +315,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     # ── Tab: OpenRouter ────────────────────────────────────────────
     def _build_openrouter_tab(self) -> QWidget:
@@ -416,7 +416,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     def _save_or_model(self):
         """Save selected OpenRouter free model to config, sync right-panel, restart engine."""
@@ -678,7 +678,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     def _on_voice_settings_changed(self):
         """Save the updated voice settings to config and update visibility."""
@@ -965,7 +965,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     # ── Tab: LM Studio ───────────────────────────────────────────────
     def _build_lmstudio_tab(self) -> QWidget:
@@ -1130,7 +1130,7 @@ class ConfigToolbar(QWidget):
         except Exception as e:
             self._pull_status.setText(f"❌ Run error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
 
     def _check_lmstudio_path(self):
         """Find LM Studio installation and update UI."""
