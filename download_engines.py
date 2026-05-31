@@ -44,7 +44,7 @@ def download_file(url: str, dest_path: Path):
         sys.stdout.flush()
 
     try:
-        urllib.request.urlretrieve(url, str(dest_path), reporthook=progress_hook)
+        urllib.request.urlretrieve(url, str(dest_path), reporthook=progress_hook, timeout=60)
         print("\n   [OK] Download complete.")
     except Exception as e:
         print(f"\n   [ERR] Download failed: {e}")
