@@ -59,7 +59,7 @@ class OllamaProvider(BaseProvider):
                 {
                     "function": {
                         "name": tc.get("name", ""),
-                        "arguments": tc.get("args", {}),
+                        "arguments": json.dumps(tc.get("args", {})),
                     }
                 }
                 for tc in msg.tool_calls
