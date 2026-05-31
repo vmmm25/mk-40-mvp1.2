@@ -121,7 +121,41 @@ class ConfigToolbar(QWidget):
             f"color: {color or C.TEXT_MED}; background: transparent;"
             f"{'padding: 2px 6px;' if pad else ''}"
         )
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     def _build_btn(self, txt, color=C.PRI, h=30, w=None, bold=True):
         btn = QPushButton(txt)
@@ -148,7 +182,41 @@ class ConfigToolbar(QWidget):
                 background: transparent;
             }}
         """)
-        return btn
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") btn
 
     def _setup_ui(self):
         self._main_layout = QVBoxLayout(self)
@@ -213,7 +281,41 @@ class ConfigToolbar(QWidget):
         lay.addLayout(save_row)
 
         lay.addStretch()
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     # ── Tab: OpenRouter ────────────────────────────────────────────
     def _build_openrouter_tab(self) -> QWidget:
@@ -280,7 +382,41 @@ class ConfigToolbar(QWidget):
         lay.addLayout(save_model_row)
 
         lay.addStretch()
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     def _save_or_model(self):
         """Save selected OpenRouter free model to config, sync right-panel, restart engine."""
@@ -508,12 +644,80 @@ class ConfigToolbar(QWidget):
         self._update_voice_visibility()
 
         lay.addStretch()
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     def _on_voice_settings_changed(self):
         """Save the updated voice settings to config and update visibility."""
         if not hasattr(self, "_voice_enabled_chk"):
             return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
 
         enabled = self._voice_enabled_chk.isChecked()
         stt = self._stt_engine_combo.currentData()
@@ -546,6 +750,40 @@ class ConfigToolbar(QWidget):
         """Update visibility of Gemini/Whisper/Piper configuration blocks based on whether voice wrapper is enabled."""
         if not hasattr(self, "_voice_enabled_chk"):
             return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
         enabled = self._voice_enabled_chk.isChecked()
 
         self._gemini_voice_container.setVisible(enabled)
@@ -641,6 +879,10 @@ class ConfigToolbar(QWidget):
         self._reload_btn.clicked.connect(self._refresh_model_list)
         combo_row.addWidget(self._reload_btn)
         combo_row.addStretch()
+        self._run_btn = self._build_btn("▶ RUN", C.PRI, h=28, w=60)
+        self._run_btn.setToolTip("Run selected model")
+        self._run_btn.clicked.connect(self._run_selected_model)
+        combo_row.addWidget(self._run_btn)
         right.addLayout(combo_row)
         self._refresh_model_list()
 
@@ -689,7 +931,41 @@ class ConfigToolbar(QWidget):
 
         # Check server on init
         self._check_server_status()
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     # ── Tab: LM Studio ───────────────────────────────────────────────
     def _build_lmstudio_tab(self) -> QWidget:
@@ -820,7 +1096,41 @@ class ConfigToolbar(QWidget):
         # Run initial checks
         self._check_lmstudio_path()
         self._refresh_lmstudio_status()
-        return w
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") w
 
     def _check_lmstudio_path(self):
         """Find LM Studio installation and update UI."""
@@ -958,6 +1268,40 @@ class ConfigToolbar(QWidget):
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
             return
 
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
+
         success = launch_lmstudio()
         if success:
             self._lm_install_lbl.setText("✅ LM Studio iniciado. Esperando servidor...")
@@ -982,7 +1326,41 @@ class ConfigToolbar(QWidget):
     def _mk_sep(self) -> QFrame:
         f = QFrame(); f.setFrameShape(QFrame.Shape.HLine)
         f.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
-        return f
+        return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") f
 
     def _save_gemini_key(self):
         """Save Gemini API key to config."""
@@ -1024,7 +1402,41 @@ class ConfigToolbar(QWidget):
 
         def _is_mapper(name: str) -> bool:
             nl = name.lower()
-            return any(kw in nl for kw in _MAPPER_KEYWORDS)
+            return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") any(kw in nl for kw in _MAPPER_KEYWORDS)
 
         try:
             devices = sd.query_devices()
@@ -1058,6 +1470,40 @@ class ConfigToolbar(QWidget):
                 combo.setCurrentIndex(i)
                 return
 
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
+
     def _on_volume_changed(self, val: int):
         """Update volume label and save to config."""
         self._vol_label.setText(f"{val}%")
@@ -1087,6 +1533,40 @@ class ConfigToolbar(QWidget):
         """Run 'ollama list' and populate the dropdown with actual installed models."""
         if not hasattr(self, '_model_combo') or not self._model_combo:
             return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
         self._model_combo.blockSignals(True)
         self._model_combo.clear()
         self._reload_btn.setEnabled(False)
@@ -1258,6 +1738,40 @@ class ConfigToolbar(QWidget):
                     self._srv_status.setText("●  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
             else:
                 r = subprocess.run(
                     ["pgrep", "-f", "ollama"], capture_output=True, timeout=3
@@ -1266,6 +1780,40 @@ class ConfigToolbar(QWidget):
                     self._srv_status.setText("●  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
+
+    def _run_selected_model(self):
+        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
+        # Get selected model id
+        model_id = self._model_combo.currentData()
+        if not model_id:
+            self._pull_status.setText("❌ No model selected")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+        # Run the model via CLI
+        try:
+            result = subprocess.run(
+                ["ollama", "run", model_id],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                self._pull_status.setText("✅ Model output captured")
+                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
+            else:
+                err_msg = result.stderr.strip() or result.stdout.strip()
+                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
+                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
+        except subprocess.TimeoutExpired:
+            self._pull_status.setText("❌ Run timed out")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log("OLLAMA RUN TIMED OUT")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Run error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
             self._srv_status.setText("○  Server: STOPPED")
             self._srv_status.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
         except Exception:
