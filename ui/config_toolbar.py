@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import platform
@@ -29,7 +29,7 @@ from lmstudio_control import (
 _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 
 
-# ── Shared OpenRouter free-model catalogue ─────────────────────────────────
+# ÔöÇÔöÇ Shared OpenRouter free-model catalogue ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 # Single source of truth used by BOTH the config tab and the right-panel combo.
 # Tuple layout: (model_id, display_name)
 _OR_FREE_MODELS: list[tuple[str, str]] = [
@@ -76,7 +76,7 @@ def _populate_or_combo(combo: "QComboBox", saved_model: str) -> None:
     combo.blockSignals(False)
 
 
-# ── Shared style sheets ──────────────────────────────────────────
+# ÔöÇÔöÇ Shared style sheets ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 _INPUT_STYLE = (
     "QLineEdit { background: #000d14; color: #d8f8ff; border: 1px solid #0d3347;"
     " border-radius: 3px; padding: 2px 6px; }"
@@ -121,41 +121,7 @@ class ConfigToolbar(QWidget):
             f"color: {color or C.TEXT_MED}; background: transparent;"
             f"{'padding: 2px 6px;' if pad else ''}"
         )
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
+        return w
 
     def _build_btn(self, txt, color=C.PRI, h=30, w=None, bold=True):
         btn = QPushButton(txt)
@@ -182,57 +148,23 @@ class ConfigToolbar(QWidget):
                 background: transparent;
             }}
         """)
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") btn
+        return btn
 
     def _setup_ui(self):
         self._main_layout = QVBoxLayout(self)
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
 
-        # ── Settings Tab Widget (Pure Static Panel) ──
+        # ÔöÇÔöÇ Settings Tab Widget (Pure Static Panel) ÔöÇÔöÇ
         self._settings_tabs = QTabWidget()
         self._settings_tabs.setStyleSheet(_TAB_STYLE)
         
         # We use compact labels to fit beautifully in 340px
-        self._settings_tabs.addTab(self._build_gemini_tab(), "🧠 GEM")
-        self._settings_tabs.addTab(self._build_openrouter_tab(), "🔗 OR")
-        self._settings_tabs.addTab(self._build_ollama_tab(), "🤖 OLL")
-        self._settings_tabs.addTab(self._build_lmstudio_tab(), "🟠 LM")
-        self._settings_tabs.addTab(self._build_audio_tab(), "🎙 VOZ")
+        self._settings_tabs.addTab(self._build_gemini_tab(), "­ƒºá GEM")
+        self._settings_tabs.addTab(self._build_openrouter_tab(), "­ƒöù OR")
+        self._settings_tabs.addTab(self._build_ollama_tab(), "­ƒñû OLL")
+        self._settings_tabs.addTab(self._build_lmstudio_tab(), "­ƒƒá LM")
+        self._settings_tabs.addTab(self._build_audio_tab(), "­ƒÄÖ VOZ")
         
         self._main_layout.addWidget(self._settings_tabs)
 
@@ -244,186 +176,103 @@ class ConfigToolbar(QWidget):
         """Emit provider signal, compatibility fallback."""
         self.provider_changed.emit(provider)
 
-    # ── Tab: Gemini ────────────────────────────────────────────────
+    # ÔöÇÔöÇ Tab: Gemini ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     def _build_gemini_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
-        lay.setContentsMargins(20, 14, 20, 14)
-        lay.setSpacing(8)
+        lay.setContentsMargins(60, 20, 60, 20)
+        lay.setSpacing(10)
 
+        lay.addStretch()
+        lay.addWidget(self._build_lbl("🔑  GEMINI API KEY", 10, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
         lay.addWidget(self._build_lbl(
-            "Ingresa tu API Key de Google Gemini para activar el asistente de voz.\n"
-            "Paso 1: Ve a https://aistudio.google.com/app/apikey\n"
-            "Paso 2: Crea una API Key (es gratis con cuota generosa)\n"
-            "Paso 3: Cópiala y pégala aquí abajo.",
-            7, color=C.TEXT_DIM)
-        )
-        lay.addSpacing(4)
+            "Requerida para el reconocimiento de voz (Cloud STT).\n"
+            "Consíguela gratis en aistudio.google.com",
+            8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter
+        ))
+        lay.addSpacing(10)
 
         cfg = load_config()
-        lay.addWidget(self._build_lbl("Gemini API Key", 8, True, C.TEXT_MED))
         self._gemini_key_input = QLineEdit()
         self._gemini_key_input.setFont(QFont("Segoe UI", 11))
-        self._gemini_key_input.setFixedHeight(26)
+        self._gemini_key_input.setFixedHeight(32)
         self._gemini_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         self._gemini_key_input.setText(cfg.get("gemini_api_key", ""))
         self._gemini_key_input.setStyleSheet(_INPUT_STYLE)
         lay.addWidget(self._gemini_key_input)
-        lay.addSpacing(8)
 
-        # Save
-        save_row = QHBoxLayout(); save_row.setSpacing(8)
-        self._save_gemini_btn = self._build_btn("💾  GUARDAR API KEY", C.GREEN, h=30)
+        save_row = QHBoxLayout(); save_row.setSpacing(15)
+        self._save_gemini_btn = self._build_btn("GUARDAR", C.GREEN, h=30, w=120)
         self._save_gemini_btn.clicked.connect(self._save_gemini_key)
+        self._gemini_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+        save_row.addStretch()
         save_row.addWidget(self._save_gemini_btn)
-        self._gemini_status = self._build_lbl("", 7, color=C.TEXT_DIM)
         save_row.addWidget(self._gemini_status)
         save_row.addStretch()
         lay.addLayout(save_row)
 
         lay.addStretch()
-        return
+        return w
 
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
-
-    # ── Tab: OpenRouter ────────────────────────────────────────────
+    # ÔöÇÔöÇ Tab: OpenRouter ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     def _build_openrouter_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
-        lay.setContentsMargins(20, 14, 20, 14)
+        lay.setContentsMargins(60, 10, 60, 10)
         lay.setSpacing(8)
 
+        lay.addWidget(self._build_lbl("🔑  OPENROUTER API KEY", 10, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
         lay.addWidget(self._build_lbl(
-            "Ingresa tu API Key de OpenRouter para usar modelos en la nube.\n"
-            "Paso 1: Ve a https://openrouter.ai/keys\n"
-            "Paso 2: Crea una cuenta y genera una API Key\n"
-            "Paso 3: Cópiala y pégala aquí abajo.",
-            7, color=C.TEXT_DIM)
-        )
-        lay.addSpacing(4)
+            "Requerida para modelos en la nube. Consíguela en openrouter.ai/keys",
+            8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter
+        ))
 
         cfg = load_config()
-        lay.addWidget(self._build_lbl("OpenRouter API Key", 8, True, C.TEXT_MED))
         self._openrouter_key_input = QLineEdit()
         self._openrouter_key_input.setFont(QFont("Segoe UI", 11))
-        self._openrouter_key_input.setFixedHeight(26)
+        self._openrouter_key_input.setFixedHeight(32)
         self._openrouter_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         self._openrouter_key_input.setText(cfg.get("openrouter_api_key", ""))
         self._openrouter_key_input.setStyleSheet(_INPUT_STYLE)
         lay.addWidget(self._openrouter_key_input)
-        lay.addSpacing(8)
 
-        # Save
-        save_row = QHBoxLayout(); save_row.setSpacing(8)
-        self._save_or_btn = self._build_btn("💾  GUARDAR API KEY", C.GREEN, h=30)
+        save_row = QHBoxLayout(); save_row.setSpacing(15)
+        self._save_or_btn = self._build_btn("GUARDAR", C.GREEN, h=30, w=120)
         self._save_or_btn.clicked.connect(self._save_openrouter_key)
+        self._or_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+        save_row.addStretch()
         save_row.addWidget(self._save_or_btn)
-        self._or_status = self._build_lbl("", 7, color=C.TEXT_DIM)
         save_row.addWidget(self._or_status)
         save_row.addStretch()
         lay.addLayout(save_row)
 
-        lay.addSpacing(12)
+        lay.addWidget(self._mk_sep())
 
-        # ── Free model selector ──
-        lay.addWidget(self._build_lbl("FREE MODELS (OpenRouter)", 8, True, C.GREEN))
-        lay.addWidget(self._build_lbl(
-            "Selecciona un modelo gratuito. Todos usan el sufijo :free "
-            "y no tienen costo por token.",
-            7, color=C.TEXT_DIM)
-        )
-        lay.addSpacing(4)
-
+        lay.addWidget(self._build_lbl("📦  FREE MODELS (OpenRouter)", 9, True, C.GREEN, align=Qt.AlignmentFlag.AlignCenter))
         self._or_model_combo = QComboBox()
         self._or_model_combo.setFont(QFont("Segoe UI", 11))
-        self._or_model_combo.setFixedHeight(26)
+        self._or_model_combo.setFixedHeight(30)
         self._or_model_combo.setStyleSheet(_COMBO_STYLE)
-        # Use the shared catalogue so both combos always show the same list
         _populate_or_combo(self._or_model_combo, get_model("openrouter"))
         lay.addWidget(self._or_model_combo)
 
-        save_model_row = QHBoxLayout(); save_model_row.setSpacing(8)
-        self._save_or_model_btn = self._build_btn("💾  GUARDAR MODELO", C.GREEN, h=28)
+        save_model_row = QHBoxLayout(); save_model_row.setSpacing(15)
+        self._save_or_model_btn = self._build_btn("GUARDAR MODELO", C.GREEN, h=30, w=140)
         self._save_or_model_btn.clicked.connect(self._save_or_model)
+        self._or_model_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+        save_model_row.addStretch()
         save_model_row.addWidget(self._save_or_model_btn)
-        self._or_model_status = self._build_lbl("", 7, color=C.TEXT_DIM)
         save_model_row.addWidget(self._or_model_status)
         save_model_row.addStretch()
         lay.addLayout(save_model_row)
 
         lay.addStretch()
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
+        return w
 
     def _save_or_model(self):
         """Save selected OpenRouter free model to config, sync right-panel, restart engine."""
         model_id = self._or_model_combo.currentData()
         if model_id:
             set_model(model_id, "openrouter")
-            self._or_model_status.setText(f"✅ Guardado: {model_id.split('/')[1].split(':')[0]}")
+            self._or_model_status.setText(f"Ô£à Guardado: {model_id.split('/')[1].split(':')[0]}")
             self._or_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Keep the right-panel combo in sync
             right_combo = self._main_win._right_model_combo
@@ -434,290 +283,158 @@ class ConfigToolbar(QWidget):
             if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
-            self._or_model_status.setText("❌ No se seleccionó modelo")
+            self._or_model_status.setText("ÔØî No se seleccion├│ modelo")
             self._or_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
-    # ── Tab: Audio Settings ──────────────────────────────────────────
+    # ÔöÇÔöÇ Tab: Audio Settings ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     def _build_audio_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
-        lay.setContentsMargins(20, 14, 20, 14)
-        lay.setSpacing(8)
-
+        lay.setContentsMargins(20, 10, 20, 10)
+        lay.setSpacing(10)
+        
+        # Sub-tabs for Voice Settings
+        self._voice_tabs = QTabWidget()
+        self._voice_tabs.setStyleSheet(_TAB_STYLE)
+        
+        # 1. Hardware Tab
+        hw_w = QWidget(); hw_lay = QVBoxLayout(hw_w)
+        hw_lay.addWidget(self._build_lbl("🎙 DISPOSITIVOS", 9, True, C.PRI, align=Qt.AlignmentFlag.AlignCenter))
+        
         cfg = load_config()
-
-        lay.addWidget(self._build_lbl("Select your audio input and output devices.", 7, color=C.TEXT_DIM))
-        lay.addSpacing(4)
-
-        # Microphone
-        lay.addWidget(self._build_lbl("Microphone (Input Device)", 8, True, C.TEXT_MED))
         self._mic_combo = QComboBox()
-        self._mic_combo.setFont(QFont("Segoe UI", 11))
-        self._mic_combo.setFixedHeight(26)
-        self._mic_combo.setStyleSheet(_COMBO_STYLE)
-        lay.addWidget(self._mic_combo)
-        lay.addSpacing(4)
-
-        # Speaker
-        lay.addWidget(self._build_lbl("Speaker (Output Device)", 8, True, C.TEXT_MED))
         self._speaker_combo = QComboBox()
-        self._speaker_combo.setFont(QFont("Segoe UI", 11))
-        self._speaker_combo.setFixedHeight(26)
-        self._speaker_combo.setStyleSheet(_COMBO_STYLE)
-        lay.addWidget(self._speaker_combo)
-        lay.addSpacing(8)
-
-        # Volume
-        lay.addWidget(self._build_lbl("Master Volume", 8, True, C.TEXT_MED))
-        vol_row = QHBoxLayout(); vol_row.setSpacing(8)
-        self._volume_slider = QSlider(Qt.Orientation.Horizontal)
-        self._volume_slider.setFixedHeight(22)
-        self._volume_slider.setMinimum(0)
-        self._volume_slider.setMaximum(100)
-        saved_vol = cfg.get("audio_volume", 80)
-        self._volume_slider.setValue(saved_vol)
-        self._volume_slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{
-                background: {C.BORDER}; height: 4px; border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                background: {C.PRI}; width: 14px; height: 14px;
-                margin: -5px 0; border-radius: 7px;
-            }}
-            QSlider::sub-page:horizontal {{
-                background: {C.PRI_DIM}; border-radius: 2px;
-            }}
-        """)
-        self._volume_slider.valueChanged.connect(self._on_volume_changed)
-        vol_row.addWidget(self._volume_slider, stretch=1)
-        self._vol_label = self._build_lbl(f"{saved_vol}%", 8, bold=True, color=C.PRI)
-        self._vol_label.setFixedWidth(40)
-        vol_row.addWidget(self._vol_label)
-        lay.addLayout(vol_row)
-
-        # Populate device lists
-        self._populate_audio_devices()
-
-        # ── Divider Line ──
-        sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet(f"color: {C.BORDER}; margin: 8px 0;")
-        lay.addWidget(sep)
-
-        # ── Title Label ──
-        lay.addWidget(self._build_lbl("🎙  MODO DE VOZ SINCRÓNICO (OLLAMA / LM STUDIO / OR)", 8, True, C.PRI))
-
-        # Checkbox Enable Voice
-        self._voice_enabled_chk = QCheckBox("Activar modo de voz en proveedores de texto")
-        self._voice_enabled_chk.setFont(QFont("Segoe UI", 10))
-        self._voice_enabled_chk.setStyleSheet(f"color: {C.TEXT};")
-        self._voice_enabled_chk.setChecked(cfg.get("voice_wrapper_enabled", False))
-        self._voice_enabled_chk.toggled.connect(self._on_voice_settings_changed)
-        lay.addWidget(self._voice_enabled_chk)
-
-        # Engines Layout (STT and TTS side by side)
-        eng_lay = QHBoxLayout()
-        eng_lay.setSpacing(10)
-
-        # STT Engine
-        stt_box = QVBoxLayout()
-        stt_box.addWidget(self._build_lbl("Motor de Transcripción (STT)", 8, True, C.TEXT_MED))
+        for combo in (self._mic_combo, self._speaker_combo):
+            combo.setFont(QFont("Segoe UI", 10))
+            combo.setFixedHeight(28)
+            combo.setStyleSheet(_COMBO_STYLE)
+            
+        mic_row = QHBoxLayout()
+        mic_row.addWidget(self._build_lbl("Input:", 8, color=C.TEXT_MED))
+        mic_row.addWidget(self._mic_combo, stretch=1)
+        hw_lay.addLayout(mic_row)
+        
+        spk_row = QHBoxLayout()
+        spk_row.addWidget(self._build_lbl("Output:", 8, color=C.TEXT_MED))
+        spk_row.addWidget(self._speaker_combo, stretch=1)
+        hw_lay.addLayout(spk_row)
+        
+        hw_lay.addWidget(self._mk_sep())
+        
+        hw_lay.addWidget(self._build_lbl("🔊 VOLUMEN", 9, True, C.PRI, align=Qt.AlignmentFlag.AlignCenter))
+        vol_val = cfg.get("audio_volume", 100)
+        self._vol_label = self._build_lbl(f"{vol_val}%", 11, True, C.TEXT_MED, align=Qt.AlignmentFlag.AlignCenter)
+        hw_lay.addWidget(self._vol_label)
+        
+        self._vol_slider = QSlider(Qt.Orientation.Horizontal)
+        self._vol_slider.setRange(0, 100)
+        self._vol_slider.setValue(vol_val)
+        self._vol_slider.valueChanged.connect(self._on_volume_changed)
+        hw_lay.addWidget(self._vol_slider)
+        hw_lay.addStretch()
+        
+        # 2. Gemini Tab
+        gem_w = QWidget(); gem_lay = QVBoxLayout(gem_w)
+        gem_lay.addWidget(self._build_lbl("☁️ GEMINI VOICE (Cloud)", 10, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
+        gem_lay.addWidget(self._build_lbl("Gemini sirve como 'Oído' (STT) ultrarrápido y como 'Voz' (TTS).", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+        gem_lay.addStretch()
+        
+        # 3. Whisper Tab
+        wsp_w = QWidget(); wsp_lay = QVBoxLayout(wsp_w)
+        wsp_lay.addWidget(self._build_lbl("🧠 WHISPER (Local STT)", 10, True, C.GREEN, align=Qt.AlignmentFlag.AlignCenter))
+        wsp_lay.addWidget(self._build_lbl("Motor de Escucha Offline. Requiere descargar modelo local.", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+        
+        wp_row = QHBoxLayout()
+        self._whisper_path_edit = QLineEdit(cfg.get("whisper_path", ""))
+        self._whisper_path_edit.setStyleSheet(_INPUT_STYLE); self._whisper_path_edit.setPlaceholderText("Ejecutable Whisper.cpp")
+        self._whisper_path_btn = self._build_btn("...", C.PRI, h=24, w=30)
+        self._whisper_path_btn.clicked.connect(self._browse_whisper_path)
+        wp_row.addWidget(self._whisper_path_edit, stretch=1); wp_row.addWidget(self._whisper_path_btn)
+        wsp_lay.addLayout(wp_row)
+        
+        wm_row = QHBoxLayout()
+        self._whisper_model_edit = QLineEdit(cfg.get("whisper_model", ""))
+        self._whisper_model_edit.setStyleSheet(_INPUT_STYLE); self._whisper_model_edit.setPlaceholderText("Archivo de modelo .bin")
+        self._whisper_model_btn = self._build_btn("...", C.PRI, h=24, w=30)
+        self._whisper_model_btn.clicked.connect(self._browse_whisper_model)
+        wm_row.addWidget(self._whisper_model_edit, stretch=1); wm_row.addWidget(self._whisper_model_btn)
+        wsp_lay.addLayout(wm_row)
+        wsp_lay.addStretch()
+        
+        # 4. Piper Tab
+        pip_w = QWidget(); pip_lay = QVBoxLayout(pip_w)
+        pip_lay.addWidget(self._build_lbl("🗣️ PIPER (Local TTS)", 10, True, C.PRI, align=Qt.AlignmentFlag.AlignCenter))
+        pip_lay.addWidget(self._build_lbl("Motor de Habla Offline. Sintetiza voz localmente sin internet.", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+        
+        pp_row = QHBoxLayout()
+        self._piper_path_edit = QLineEdit(cfg.get("piper_path", ""))
+        self._piper_path_edit.setStyleSheet(_INPUT_STYLE); self._piper_path_edit.setPlaceholderText("Ejecutable Piper")
+        self._piper_path_btn = self._build_btn("...", C.PRI, h=24, w=30)
+        self._piper_path_btn.clicked.connect(self._browse_piper_path)
+        pp_row.addWidget(self._piper_path_edit, stretch=1); pp_row.addWidget(self._piper_path_btn)
+        pip_lay.addLayout(pp_row)
+        
+        pm_row = QHBoxLayout()
+        self._piper_model_edit = QLineEdit(cfg.get("piper_model", ""))
+        self._piper_model_edit.setStyleSheet(_INPUT_STYLE); self._piper_model_edit.setPlaceholderText("Archivo de modelo .onnx")
+        self._piper_model_btn = self._build_btn("...", C.PRI, h=24, w=30)
+        self._piper_model_btn.clicked.connect(self._browse_piper_model)
+        pm_row.addWidget(self._piper_model_edit, stretch=1); pm_row.addWidget(self._piper_model_btn)
+        pip_lay.addLayout(pm_row)
+        pip_lay.addStretch()
+        
+        self._voice_tabs.addTab(hw_w, "🎛️ HARDWARE")
+        self._voice_tabs.addTab(gem_w, "☁️ GEMINI")
+        self._voice_tabs.addTab(wsp_w, "🧠 WHISPER")
+        self._voice_tabs.addTab(pip_w, "🗣️ PIPER")
+        
+        lay.addWidget(self._voice_tabs, stretch=1)
+        
+        # Engine Selection Global
+        eng_lay = QHBoxLayout(); eng_lay.setSpacing(10)
+        
+        eng_lay.addWidget(self._build_lbl("Motor STT (Oído):", 9, True, C.TEXT_MED))
         self._stt_engine_combo = QComboBox()
         self._stt_engine_combo.setFont(QFont("Segoe UI", 10))
-        self._stt_engine_combo.setFixedHeight(26)
+        self._stt_engine_combo.setFixedHeight(28)
         self._stt_engine_combo.setStyleSheet(_COMBO_STYLE)
         self._stt_engine_combo.addItem("Gemini Cloud", "gemini")
-        self._stt_engine_combo.addItem("Whisper.cpp Local", "whisper")
-        saved_stt = cfg.get("stt_engine", "gemini")
-        for i in range(self._stt_engine_combo.count()):
-            if self._stt_engine_combo.itemData(i) == saved_stt:
-                self._stt_engine_combo.setCurrentIndex(i)
-                break
-        self._stt_engine_combo.currentIndexChanged.connect(self._on_voice_settings_changed)
-        stt_box.addWidget(self._stt_engine_combo)
-        eng_lay.addLayout(stt_box, stretch=1)
-
-        # TTS Engine
-        tts_box = QVBoxLayout()
-        tts_box.addWidget(self._build_lbl("Motor de Voz (TTS)", 8, True, C.TEXT_MED))
+        self._stt_engine_combo.addItem("Whisper Local", "whisper")
+        self._select_combo_by_data(self._stt_engine_combo, cfg.get("stt_engine", "gemini"))
+        eng_lay.addWidget(self._stt_engine_combo)
+        
+        eng_lay.addWidget(self._build_lbl("Motor TTS (Voz):", 9, True, C.TEXT_MED))
         self._tts_engine_combo = QComboBox()
         self._tts_engine_combo.setFont(QFont("Segoe UI", 10))
-        self._tts_engine_combo.setFixedHeight(26)
+        self._tts_engine_combo.setFixedHeight(28)
         self._tts_engine_combo.setStyleSheet(_COMBO_STYLE)
         self._tts_engine_combo.addItem("Gemini Cloud", "gemini")
         self._tts_engine_combo.addItem("Piper Local", "piper")
-        saved_tts = cfg.get("tts_engine", "gemini")
-        for i in range(self._tts_engine_combo.count()):
-            if self._tts_engine_combo.itemData(i) == saved_tts:
-                self._tts_engine_combo.setCurrentIndex(i)
-                break
-        self._tts_engine_combo.currentIndexChanged.connect(self._on_voice_settings_changed)
-        tts_box.addWidget(self._tts_engine_combo)
-        eng_lay.addLayout(tts_box, stretch=1)
-
+        self._select_combo_by_data(self._tts_engine_combo, cfg.get("tts_engine", "piper"))
+        eng_lay.addWidget(self._tts_engine_combo)
+        
         lay.addLayout(eng_lay)
-
-        # ── Gemini Cloud Settings ──
-        self._gemini_voice_container = QWidget()
-        ge_lay = QVBoxLayout(self._gemini_voice_container)
-        ge_lay.setContentsMargins(0, 0, 0, 0)
-        ge_lay.setSpacing(4)
-
-        ge_lay.addWidget(self._build_lbl("🔑  API Key de Google Gemini (Cloud STT / TTS)", 8, True, C.TEXT_DIM))
-        self._gemini_voice_key_edit = QLineEdit(cfg.get("gemini_api_key", ""))
-        self._gemini_voice_key_edit.setFixedHeight(24)
-        self._gemini_voice_key_edit.setFont(QFont("Segoe UI", 9))
-        self._gemini_voice_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self._gemini_voice_key_edit.setStyleSheet(_INPUT_STYLE)
-        self._gemini_voice_key_edit.textChanged.connect(self._on_voice_settings_changed)
-        ge_lay.addWidget(self._gemini_voice_key_edit)
-
-        lay.addWidget(self._gemini_voice_container)
-
-        # ── Whisper Paths (collapsible) ──
-        self._whisper_container = QWidget()
-        wh_lay = QVBoxLayout(self._whisper_container)
-        wh_lay.setContentsMargins(0, 0, 0, 0)
-        wh_lay.setSpacing(4)
-
-        wh_lay.addWidget(self._build_lbl("🎙  Ruta de whisper-cli.exe / main.exe (Local STT)", 8, True, C.TEXT_DIM))
-        wh_exec_row = QHBoxLayout()
-        self._whisper_path_edit = QLineEdit(cfg.get("whisper_path", ""))
-        self._whisper_path_edit.setFixedHeight(24)
-        self._whisper_path_edit.setFont(QFont("Segoe UI", 9))
-        self._whisper_path_edit.setStyleSheet(_INPUT_STYLE)
-        self._whisper_path_edit.textChanged.connect(self._on_voice_settings_changed)
-        wh_exec_row.addWidget(self._whisper_path_edit)
-        self._whisper_path_btn = self._build_btn("Buscar", C.PRI, h=24, bold=False)
-        self._whisper_path_btn.clicked.connect(self._browse_whisper_path)
-        wh_exec_row.addWidget(self._whisper_path_btn)
-        wh_lay.addLayout(wh_exec_row)
-
-        wh_lay.addWidget(self._build_lbl("📦  Ruta del Modelo GGML (.bin)", 8, True, C.TEXT_DIM))
-        wh_mod_row = QHBoxLayout()
-        self._whisper_model_edit = QLineEdit(cfg.get("whisper_model", ""))
-        self._whisper_model_edit.setFixedHeight(24)
-        self._whisper_model_edit.setFont(QFont("Segoe UI", 9))
-        self._whisper_model_edit.setStyleSheet(_INPUT_STYLE)
-        self._whisper_model_edit.textChanged.connect(self._on_voice_settings_changed)
-        wh_mod_row.addWidget(self._whisper_model_edit)
-        self._whisper_model_btn = self._build_btn("Buscar", C.PRI, h=24, bold=False)
-        self._whisper_model_btn.clicked.connect(self._browse_whisper_model)
-        wh_mod_row.addWidget(self._whisper_model_btn)
-        wh_lay.addLayout(wh_mod_row)
-
-        lay.addWidget(self._whisper_container)
-
-        # ── Piper Paths (collapsible) ──
-        self._piper_container = QWidget()
-        pi_lay = QVBoxLayout(self._piper_container)
-        pi_lay.setContentsMargins(0, 0, 0, 0)
-        pi_lay.setSpacing(4)
-
-        pi_lay.addWidget(self._build_lbl("🗣  Ruta de piper.exe (Local TTS)", 8, True, C.TEXT_DIM))
-        pi_exec_row = QHBoxLayout()
-        self._piper_path_edit = QLineEdit(cfg.get("piper_path", ""))
-        self._piper_path_edit.setFixedHeight(24)
-        self._piper_path_edit.setFont(QFont("Segoe UI", 9))
-        self._piper_path_edit.setStyleSheet(_INPUT_STYLE)
-        self._piper_path_edit.textChanged.connect(self._on_voice_settings_changed)
-        pi_exec_row.addWidget(self._piper_path_edit)
-        self._piper_path_btn = self._build_btn("Buscar", C.PRI, h=24, bold=False)
-        self._piper_path_btn.clicked.connect(self._browse_piper_path)
-        pi_exec_row.addWidget(self._piper_path_btn)
-        pi_lay.addLayout(pi_exec_row)
-
-        pi_lay.addWidget(self._build_lbl("🗣  Ruta de Voz Piper (.onnx)", 8, True, C.TEXT_DIM))
-        pi_mod_row = QHBoxLayout()
-        self._piper_model_edit = QLineEdit(cfg.get("piper_model", ""))
-        self._piper_model_edit.setFixedHeight(24)
-        self._piper_model_edit.setFont(QFont("Segoe UI", 9))
-        self._piper_model_edit.setStyleSheet(_INPUT_STYLE)
-        self._piper_model_edit.textChanged.connect(self._on_voice_settings_changed)
-        pi_mod_row.addWidget(self._piper_model_edit)
-        self._piper_model_btn = self._build_btn("Buscar", C.PRI, h=24, bold=False)
-        self._piper_model_btn.clicked.connect(self._browse_piper_model)
-        pi_mod_row.addWidget(self._piper_model_btn)
-        pi_lay.addLayout(pi_mod_row)
-
-        lay.addWidget(self._piper_container)
-
-        # Set initial dynamic visibilities
-        self._update_voice_visibility()
-
-        lay.addStretch()
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
+        
+        # Save Voice Settings
+        save_row = QHBoxLayout()
+        save_row.addStretch()
+        self._voice_enabled_chk = QCheckBox(" Activar Voz de Jarvis (Global)")
+        self._voice_enabled_chk.setStyleSheet(f"color: {C.TEXT_MED}; font-weight: bold;")
+        self._voice_enabled_chk.setChecked(cfg.get("voice_wrapper_enabled", False))
+        save_row.addWidget(self._voice_enabled_chk)
+        
+        self._save_voice_btn = self._build_btn("GUARDAR AJUSTES", C.GREEN, h=30)
+        self._save_voice_btn.clicked.connect(self._on_voice_settings_changed)
+        save_row.addWidget(self._save_voice_btn)
+        save_row.addStretch()
+        lay.addLayout(save_row)
+        
+        self._populate_audio_devices()
+        return w
 
     def _on_voice_settings_changed(self):
         """Save the updated voice settings to config and update visibility."""
         if not hasattr(self, "_voice_enabled_chk"):
             return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
 
         enabled = self._voice_enabled_chk.isChecked()
         stt = self._stt_engine_combo.currentData()
@@ -750,40 +467,6 @@ class ConfigToolbar(QWidget):
         """Update visibility of Gemini/Whisper/Piper configuration blocks based on whether voice wrapper is enabled."""
         if not hasattr(self, "_voice_enabled_chk"):
             return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
         enabled = self._voice_enabled_chk.isChecked()
 
         self._gemini_voice_container.setVisible(enabled)
@@ -826,330 +509,193 @@ class ConfigToolbar(QWidget):
             self._piper_model_edit.setText(os.path.normpath(file_path))
             self._on_voice_settings_changed()
 
-    # ── Tab: Ollama Tools + Commands ─────────────────────────────────
+    # ÔöÇÔöÇ Tab: Ollama Tools + Commands ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     def _build_ollama_tab(self) -> QWidget:
-        w = QWidget(); lay = QHBoxLayout(w)
-        lay.setContentsMargins(16, 10, 16, 10)
-        lay.setSpacing(24)
+        w = QWidget(); lay = QVBoxLayout(w)
+        lay.setContentsMargins(50, 10, 50, 10)
+        lay.setSpacing(12)
 
-        # Left: Command Reference
-        left = QVBoxLayout(); left.setSpacing(4)
-        left.addWidget(self._build_lbl("▸  COMMAND REFERENCE", 9, True, C.ACC2, pad=True))
-        cmd_list = [
-            ("ollama pull [model]",  "Download a model (e.g. llama3.2, mistral)"),
-            ("ollama serve",         "Start the Ollama background server"),
-            ("ollama list",          "List all downloaded models"),
-            ("ollama run [model]",   "Run a model in interactive terminal"),
-            ("ollama rm [model]",    "Remove a downloaded model"),
-            ("ollama stop",          "Stop the running model"),
-            ("ollama ps",            "Show currently running models"),
-        ]
-        for cmd, desc in cmd_list:
-            row = QHBoxLayout(); row.setSpacing(8)
-            c = self._build_lbl(cmd, 8, True, C.PRI)
-            c.setFixedWidth(200)
-            row.addWidget(c)
-            row.addWidget(self._build_lbl(desc, 7, color=C.TEXT_DIM))
-            row.addStretch()
-            left.addLayout(row)
-        left.addStretch()
-        lay.addLayout(left, stretch=3)
+        lay.addWidget(self._build_lbl("🦙  OLLAMA LOCAL MODELS", 10, True, C.ACC2, align=Qt.AlignmentFlag.AlignCenter))
+        lay.addWidget(self._build_lbl("Gestiona tus modelos de IA locales. Ollama se iniciará automáticamente.", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+        lay.addSpacing(5)
 
-        # Vertical separator
-        sep_v = QFrame(); sep_v.setFrameShape(QFrame.Shape.VLine)
-        sep_v.setStyleSheet(f"color: {C.BORDER};")
-        lay.addWidget(sep_v)
-
-        # Right: Ollama Manager
-        right = QVBoxLayout(); right.setSpacing(6)
-        right.addWidget(self._build_lbl("▸  MODEL MANAGER", 9, True, C.ACC2, pad=True))
-
-        # Model dropdown + reload
-        right.addWidget(self._build_lbl("Select model:", 7, color=C.TEXT_MED))
-        combo_row = QHBoxLayout(); combo_row.setSpacing(6)
+        # Combo and Refresh
+        combo_row = QHBoxLayout(); combo_row.setSpacing(10)
         self._model_combo = QComboBox()
         self._model_combo.setEditable(True)
         self._model_combo.setFont(QFont("Segoe UI", 12))
-        self._model_combo.setFixedHeight(28)
-        self._model_combo.setMinimumWidth(240)
+        self._model_combo.setFixedHeight(34)
         self._model_combo.setStyleSheet(_COMBO_STYLE)
-        combo_row.addWidget(self._model_combo)
-        self._reload_btn = self._build_btn("↻", C.PRI, h=28, w=32, bold=False)
-        self._reload_btn.setToolTip("Refresh model list from ollama list")
+        combo_row.addWidget(self._model_combo, stretch=1)
+
+        self._reload_btn = self._build_btn("↻", C.PRI, h=34, w=38, bold=True)
+        self._reload_btn.setToolTip("Refresh model list")
         self._reload_btn.clicked.connect(self._refresh_model_list)
         combo_row.addWidget(self._reload_btn)
-        combo_row.addStretch()
-        self._run_btn = self._build_btn("▶ RUN", C.PRI, h=28, w=60)
-        self._run_btn.setToolTip("Run selected model")
-        self._run_btn.clicked.connect(self._run_selected_model)
+
+        self._run_btn = self._build_btn("▶ RUN", C.GREEN, h=34, w=90)
+        self._run_btn.clicked.connect(self._save_ollama_model)
         combo_row.addWidget(self._run_btn)
-        right.addLayout(combo_row)
-        self._refresh_model_list()
-
-        # Pull button
-        pull_row = QHBoxLayout(); pull_row.setSpacing(8)
-        self._pull_btn = self._build_btn("⬇  PULL MODEL", C.PRI, h=30)
+        
+        self._pull_btn = self._build_btn("⬇ PULL", C.PRI, h=34, w=90)
         self._pull_btn.clicked.connect(self._on_pull_model)
-        pull_row.addWidget(self._pull_btn)
-        self._pull_status = self._build_lbl("Ready", 7, color=C.TEXT_DIM)
-        pull_row.addWidget(self._pull_status)
-        pull_row.addStretch()
-        right.addLayout(pull_row)
-        # Quick presets
-        right.addWidget(self._build_lbl("Quick pull:", 7, color=C.TEXT_MED))
-        presets_row = QHBoxLayout(); presets_row.setSpacing(4)
-        for model_id, label in [
-            ("llama3.2", "Llama 3.2"),
-            ("mistral", "Mistral"),
-            ("gemma2", "Gemma 2"),
-            ("phi4", "Phi-4"),
-            ("deepseek-r1", "DeepSeek R1"),
-        ]:
-            b = self._build_btn(label, C.ACC2, h=26, bold=False)
-            b.clicked.connect(lambda checked, m=model_id: self._quick_pull(m))
-            presets_row.addWidget(b)
-        presets_row.addStretch()
-        right.addLayout(presets_row)
-        # Server controls
-        right.addSpacing(2)
-        right.addWidget(self._build_lbl("Server control:", 7, color=C.TEXT_MED))
-        srv_row = QHBoxLayout(); srv_row.setSpacing(8)
-        self._up_btn = self._build_btn("▲  UP SERVER  (ollama serve)", C.GREEN, h=30)
+        combo_row.addWidget(self._pull_btn)
+        lay.addLayout(combo_row)
+
+        # Pull status
+        self._pull_status = self._build_lbl("Listo para usar", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self._pull_status)
+        
+        lay.addWidget(self._mk_sep())
+        
+        # Presets
+        presets_lay = QVBoxLayout(); presets_lay.setSpacing(6)
+        
+        # Open Folder
+        folder_row = QHBoxLayout()
+        folder_row.addStretch()
+        self._open_ollama_btn = self._build_btn("📁 CARPETA MODELOS", C.PRI, h=26, bold=False)
+        self._open_ollama_btn.clicked.connect(self._open_ollama_models_folder)
+        folder_row.addWidget(self._open_ollama_btn)
+        folder_row.addStretch()
+        lay.addLayout(folder_row)
+        
+        presets_lay.addWidget(self._build_lbl("Quick Run (Recomendados):", 8, color=C.TEXT_MED, align=Qt.AlignmentFlag.AlignCenter))
+        p_row = QHBoxLayout(); p_row.setSpacing(8)
+        p_row.addStretch()
+        for mid, mname in [("llama3.2", "Llama 3.2"), ("mistral", "Mistral"), ("phi4", "Phi-4"), ("deepseek-r1", "DeepSeek")]:
+            b = self._build_btn(mname, C.ACC2, h=26, bold=False)
+            b.clicked.connect(lambda checked, m=mid: self._quick_run(m))
+            p_row.addWidget(b)
+        p_row.addStretch()
+        presets_lay.addLayout(p_row)
+        lay.addLayout(presets_lay)
+        
+        lay.addSpacing(5)
+        
+        # Server Control
+        s_row = QHBoxLayout(); s_row.setSpacing(8)
+        s_row.addStretch()
+        s_row.addWidget(self._build_lbl("Server:", 8, color=C.TEXT_MED))
+        self._up_btn = self._build_btn("▶ UP", C.GREEN, h=24)
         self._up_btn.clicked.connect(self._on_up_server)
-        srv_row.addWidget(self._up_btn)
-        right.addLayout(srv_row)
-        srv_row2 = QHBoxLayout(); srv_row2.setSpacing(8)
-        self._down_btn = self._build_btn("▼  DOWN SERVER  (kill ollama)", C.RED, h=30)
+        self._down_btn = self._build_btn("⏹ DOWN", C.RED, h=24)
         self._down_btn.clicked.connect(self._on_down_server)
-        srv_row2.addWidget(self._down_btn)
-        self._srv_status = self._build_lbl("Server: unknown", 7, color=C.TEXT_DIM)
-        srv_row2.addWidget(self._srv_status)
-        srv_row2.addStretch()
-        right.addLayout(srv_row2)
-        right.addStretch()
-        lay.addLayout(right, stretch=2)
+        s_row.addWidget(self._up_btn)
+        s_row.addWidget(self._down_btn)
+        
+        self._srv_status = self._build_lbl("checking...", 8, color=C.TEXT_DIM)
+        s_row.addWidget(self._srv_status)
+        s_row.addStretch()
+        lay.addLayout(s_row)
+        
+        lay.addStretch()
 
-        # Check server on init
+        self._refresh_model_list()
         self._check_server_status()
-        return
+        return w
 
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
-
-    # ── Tab: LM Studio ───────────────────────────────────────────────
+    # ÔöÇÔöÇ Tab: LM Studio ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     def _build_lmstudio_tab(self) -> QWidget:
-        w = QWidget(); lay = QHBoxLayout(w)
-        lay.setContentsMargins(16, 10, 16, 10)
-        lay.setSpacing(24)
+        w = QWidget(); lay = QVBoxLayout(w)
+        lay.setContentsMargins(40, 10, 40, 10)
+        lay.setSpacing(10)
 
-        # Left: Installation & Path Info
-        left = QVBoxLayout(); left.setSpacing(4)
-        left.addWidget(self._build_lbl("▸  LM STUDIO SETUP", 9, True, C.ACC, pad=True))
-        left.addWidget(self._build_lbl(
-            "LM Studio proporciona un servidor local OpenAI-compatible.\n"
-            "MARK XL se conecta automáticamente para usar modelos locales.",
-            7, color=C.TEXT_DIM)
-        )
-        left.addSpacing(6)
-
-        # Auto-detect path
-        self._lm_path_lbl = self._build_lbl("🔍 Detectando instalación...", 7, color=C.TEXT_MED)
-        left.addWidget(self._lm_path_lbl)
-        left.addSpacing(4)
-
-        # URL input
-        left.addWidget(self._build_lbl("Server URL:", 8, True, C.TEXT_MED))
+        lay.addWidget(self._build_lbl("🖥  LM STUDIO SERVER", 10, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
+        self._lm_path_lbl = self._build_lbl("Buscando instalación...", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self._lm_path_lbl)
+        
+        url_row = QHBoxLayout(); url_row.setSpacing(8)
+        url_row.addWidget(self._build_lbl("URL:", 9, True, C.TEXT_MED))
         cfg = load_config()
-        url_row = QHBoxLayout(); url_row.setSpacing(6)
         self._lm_url_input = QLineEdit()
         self._lm_url_input.setFont(QFont("Segoe UI", 11))
-        self._lm_url_input.setFixedHeight(26)
+        self._lm_url_input.setFixedHeight(30)
         self._lm_url_input.setText(cfg.get("lmstudio_url", "http://localhost:1234"))
         self._lm_url_input.setStyleSheet(_INPUT_STYLE)
         url_row.addWidget(self._lm_url_input, stretch=1)
-
-        # Save URL button
-        self._save_lm_url_btn = self._build_btn("💾", C.GREEN, h=26, w=32, bold=False)
-        self._save_lm_url_btn.setToolTip("Save server URL")
+        
+        self._save_lm_url_btn = self._build_btn("✓", C.GREEN, h=30, w=32)
         self._save_lm_url_btn.clicked.connect(self._save_lmstudio_url)
         url_row.addWidget(self._save_lm_url_btn)
-        left.addLayout(url_row)
-        left.addSpacing(4)
-
-        # Auto-launch toggle
-        auto_row = QHBoxLayout(); auto_row.setSpacing(8)
-        auto_row.addWidget(self._build_lbl("Auto-launch LM Studio:", 8, color=C.TEXT_MED))
-        self._lm_auto_toggle = self._build_btn("", C.GREEN, h=24, w=60)
-        self._lm_auto_toggle.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+        lay.addLayout(url_row)
+        
+        ctrl_row = QHBoxLayout(); ctrl_row.setSpacing(10)
+        ctrl_row.addStretch()
+        self._lm_launch_btn = self._build_btn("▶ LAUNCH", C.GREEN, h=28)
+        self._lm_launch_btn.clicked.connect(self._on_lm_launch)
+        self._lm_quit_btn = self._build_btn("⏹ QUIT", C.RED, h=28)
+        self._lm_quit_btn.clicked.connect(self._on_lm_quit)
+        ctrl_row.addWidget(self._lm_launch_btn)
+        ctrl_row.addWidget(self._lm_quit_btn)
+        
+        self._lm_auto_toggle = self._build_btn("AUTO: ON", C.GREEN, h=28)
         self._lm_auto_toggle.clicked.connect(self._toggle_lm_auto)
         self._update_lm_auto_btn(cfg.get("lmstudio_auto_launch", True))
-        auto_row.addWidget(self._lm_auto_toggle)
-        auto_row.addStretch()
-        left.addLayout(auto_row)
-        left.addSpacing(6)
-
-        # App control buttons
-        left.addWidget(self._build_lbl("App Control:", 8, True, C.TEXT_MED))
-        ctrl_row = QHBoxLayout(); ctrl_row.setSpacing(8)
-        self._lm_launch_btn = self._build_btn("▶  LAUNCH", C.GREEN, h=28)
-        self._lm_launch_btn.clicked.connect(self._on_lm_launch)
-        ctrl_row.addWidget(self._lm_launch_btn)
-        self._lm_quit_btn = self._build_btn("■  QUIT", C.RED, h=28)
-        self._lm_quit_btn.clicked.connect(self._on_lm_quit)
-        ctrl_row.addWidget(self._lm_quit_btn)
-        ctrl_row.addStretch()
-        left.addLayout(ctrl_row)
-        left.addSpacing(4)
-
-        self._lm_install_lbl = self._build_lbl("", 7, color=C.TEXT_DIM)
-        left.addWidget(self._lm_install_lbl)
-        left.addStretch()
-        lay.addLayout(left, stretch=3)
-
-        # Vertical separator
-        sep_v = QFrame(); sep_v.setFrameShape(QFrame.Shape.VLine)
-        sep_v.setStyleSheet(f"color: {C.BORDER};")
-        lay.addWidget(sep_v)
-
-        # Right: Model Selection & Server Status
-        right = QVBoxLayout(); right.setSpacing(6)
-        right.addWidget(self._build_lbl("▸  MODEL & SERVER", 9, True, C.ACC, pad=True))
-
-        # Server status indicator
+        ctrl_row.addWidget(self._lm_auto_toggle)
+        
         self._lm_server_lbl = self._build_lbl("● Server: checking...", 9, True, C.TEXT_DIM)
-        self._lm_server_lbl.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent; padding: 2px 0;")
-        right.addWidget(self._lm_server_lbl)
-
-        # Refresh status button
-        status_row = QHBoxLayout(); status_row.setSpacing(6)
-        self._lm_refresh_btn = self._build_btn("↻  REFRESH STATUS", C.PRI, h=26, bold=False)
+        self._lm_refresh_btn = self._build_btn("↻", C.PRI, h=28, w=30)
         self._lm_refresh_btn.clicked.connect(self._refresh_lmstudio_status)
-        status_row.addWidget(self._lm_refresh_btn)
-        status_row.addStretch()
-        right.addLayout(status_row)
-        right.addSpacing(6)
+        ctrl_row.addWidget(self._lm_server_lbl)
+        ctrl_row.addWidget(self._lm_refresh_btn)
+        ctrl_row.addStretch()
+        lay.addLayout(ctrl_row)
+        
+        self._lm_install_lbl = self._build_lbl("", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self._lm_install_lbl)
 
-        # Model combo
-        right.addWidget(self._build_lbl("Downloaded models:", 8, True, C.TEXT_MED))
+        lay.addWidget(self._mk_sep())
+        
+        lay.addWidget(self._build_lbl("📦  MODEL SELECTION", 9, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
         self._lm_model_combo = QComboBox()
         self._lm_model_combo.setFont(QFont("Segoe UI", 11))
-        self._lm_model_combo.setFixedHeight(26)
+        self._lm_model_combo.setFixedHeight(30)
         self._lm_model_combo.setStyleSheet(_COMBO_STYLE)
-        right.addWidget(self._lm_model_combo)
-
-        # Save + Sync model button
-        save_model_row = QHBoxLayout(); save_model_row.setSpacing(6)
-        self._save_lm_model_btn = self._build_btn("💾  GUARDAR MODELO", C.GREEN, h=28)
+        lay.addWidget(self._lm_model_combo)
+        
+        model_action_row = QHBoxLayout()
+        model_action_row.addStretch()
+        self._save_lm_model_btn = self._build_btn("GUARDAR MODELO", C.GREEN, h=30)
         self._save_lm_model_btn.clicked.connect(self._save_lm_model)
-        save_model_row.addWidget(self._save_lm_model_btn)
-        self._lm_model_status = self._build_lbl("", 7, color=C.TEXT_DIM)
-        save_model_row.addWidget(self._lm_model_status)
-        save_model_row.addStretch()
-        right.addLayout(save_model_row)
-
-        # Populate models AFTER status label exists
-        self._populate_lm_models()
-        right.addSpacing(6)
-
-        # Refresh models button
-        refresh_models_row = QHBoxLayout(); refresh_models_row.setSpacing(6)
-        self._lm_refresh_models_btn = self._build_btn("↻  SCAN LOCAL MODELS", C.ACC, h=26, bold=False)
+        self._lm_refresh_models_btn = self._build_btn("↻ SCAN", C.ACC, h=30)
+        self._lm_folder_btn = self._build_btn("📁 CARPETA", C.PRI, h=30)
+        self._lm_folder_btn.clicked.connect(self._open_lm_models_folder)
+        model_action_row.addWidget(self._lm_folder_btn)
         self._lm_refresh_models_btn.clicked.connect(self._populate_lm_models)
-        refresh_models_row.addWidget(self._lm_refresh_models_btn)
-        refresh_models_row.addStretch()
-        right.addLayout(refresh_models_row)
+        model_action_row.addWidget(self._save_lm_model_btn)
+        model_action_row.addWidget(self._lm_refresh_models_btn)
+        
+        self._lm_model_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+        model_action_row.addWidget(self._lm_model_status)
+        model_action_row.addStretch()
+        lay.addLayout(model_action_row)
 
-        right.addStretch()
-        lay.addLayout(right, stretch=2)
+        lay.addStretch()
 
-        # Run initial checks
         self._check_lmstudio_path()
         self._refresh_lmstudio_status()
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}"
+        self._populate_lm_models()
+        return w
 
     def _check_lmstudio_path(self):
         """Find LM Studio installation and update UI."""
         path = find_lmstudio_path()
         if path:
-            self._lm_path_lbl.setText(f"✅ Instalado en: {path.parent}")
+            self._lm_path_lbl.setText(f"Ô£à Instalado en: {path.parent}")
             self._lm_path_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         else:
-            self._lm_path_lbl.setText("⚠️ LM Studio no encontrado. Instálalo desde lmstudio.ai")
+            self._lm_path_lbl.setText("ÔÜá´©Å LM Studio no encontrado. Inst├ílalo desde lmstudio.ai")
             self._lm_path_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _refresh_lmstudio_status(self):
         """Check LM Studio server status and update UI."""
         running = is_server_running()
         if running:
-            self._lm_server_lbl.setText("●  Server: RUNNING")
+            self._lm_server_lbl.setText("ÔùÅ  Server: RUNNING")
             self._lm_server_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent; padding: 2px 0;")
         else:
-            self._lm_server_lbl.setText("●  Server: OFFLINE")
+            self._lm_server_lbl.setText("ÔùÅ  Server: OFFLINE")
             self._lm_server_lbl.setStyleSheet(f"color: {C.RED}; background: transparent; padding: 2px 0;")
 
     def _populate_lm_models(self):
@@ -1180,10 +726,10 @@ class ConfigToolbar(QWidget):
         # Update status tooltip
         count = self._lm_model_combo.count()
         if count > 0:
-            self._lm_model_status.setText(f"📦 {count} modelo(s) encontrado(s)")
+            self._lm_model_status.setText(f"­ƒôª {count} modelo(s) encontrado(s)")
             self._lm_model_status.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
         else:
-            self._lm_model_status.setText("⚠️ No se encontraron modelos locales")
+            self._lm_model_status.setText("ÔÜá´©Å No se encontraron modelos locales")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_lm_model(self):
@@ -1192,7 +738,7 @@ class ConfigToolbar(QWidget):
         if model_id:
             set_model(model_id, "lmstudio")
             short_name = model_id.split("/")[-1].split(":")[0]
-            self._lm_model_status.setText(f"✅ Guardado: {short_name}")
+            self._lm_model_status.setText(f"Ô£à Guardado: {short_name}")
             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Keep right-panel combo in sync
             right_combo = self._main_win._right_model_combo
@@ -1216,7 +762,7 @@ class ConfigToolbar(QWidget):
             if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
-            self._lm_model_status.setText("❌ No se seleccionó modelo")
+            self._lm_model_status.setText("ÔØî No se seleccion├│ modelo")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_lmstudio_url(self):
@@ -1224,7 +770,7 @@ class ConfigToolbar(QWidget):
         url = self._lm_url_input.text().strip()
         if url:
             save_config({"lmstudio_url": url})
-            self._save_lm_url_btn.setText("✓")
+            self._save_lm_url_btn.setText("Ô£ô")
             self._save_lm_url_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: {C.DARK}; color: {C.GREEN};
@@ -1264,113 +810,45 @@ class ConfigToolbar(QWidget):
         """Launch LM Studio application."""
         path = find_lmstudio_path()
         if not path:
-            self._lm_install_lbl.setText("❌ LM Studio no está instalado.")
+            self._lm_install_lbl.setText("ÔØî LM Studio no est├í instalado.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
             return
 
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
-
         success = launch_lmstudio()
         if success:
-            self._lm_install_lbl.setText("✅ LM Studio iniciado. Esperando servidor...")
+            self._lm_install_lbl.setText("Ô£à LM Studio iniciado. Esperando servidor...")
             self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Wait for server then refresh
             QTimer.singleShot(1000, self._refresh_lmstudio_status)
         else:
-            self._lm_install_lbl.setText("❌ Error al iniciar LM Studio.")
+            self._lm_install_lbl.setText("ÔØî Error al iniciar LM Studio.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _on_lm_quit(self):
         """Quit LM Studio application."""
         success = quit_lmstudio()
         if success:
-            self._lm_install_lbl.setText("✅ LM Studio detenido.")
+            self._lm_install_lbl.setText("Ô£à LM Studio detenido.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             QTimer.singleShot(500, self._refresh_lmstudio_status)
         else:
-            self._lm_install_lbl.setText("⚠️ No se pudo detener LM Studio.")
+            self._lm_install_lbl.setText("ÔÜá´©Å No se pudo detener LM Studio.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.ACC}; background: transparent;")
 
     def _mk_sep(self) -> QFrame:
         f = QFrame(); f.setFrameShape(QFrame.Shape.HLine)
         f.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
-        return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") f
+        return f
 
     def _save_gemini_key(self):
         """Save Gemini API key to config."""
         gemini = self._gemini_key_input.text().strip()
         try:
             save_config({"gemini_api_key": gemini})
-            self._gemini_status.setText("✅ Gemini key guardada")
+            self._gemini_status.setText("Ô£à Gemini key guardada")
             self._gemini_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         except Exception as e:
-            self._gemini_status.setText(f"❌ Error: {e}")
+            self._gemini_status.setText(f"ÔØî Error: {e}")
             self._gemini_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_openrouter_key(self):
@@ -1378,10 +856,10 @@ class ConfigToolbar(QWidget):
         openrouter = self._openrouter_key_input.text().strip()
         try:
             save_config({"openrouter_api_key": openrouter})
-            self._or_status.setText("✅ OpenRouter key guardada")
+            self._or_status.setText("Ô£à OpenRouter key guardada")
             self._or_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         except Exception as e:
-            self._or_status.setText(f"❌ Error: {e}")
+            self._or_status.setText(f"ÔØî Error: {e}")
             self._or_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _populate_audio_devices(self):
@@ -1390,8 +868,8 @@ class ConfigToolbar(QWidget):
         saved_spk = load_config().get("audio_output_device", None)
 
         # Add "System Default" as the first / fallback option (stored as None)
-        self._mic_combo.addItem("🎙  System Default", None)
-        self._speaker_combo.addItem("🔊  System Default", None)
+        self._mic_combo.addItem("­ƒÄÖ  System Default", None)
+        self._speaker_combo.addItem("­ƒöè  System Default", None)
 
         _MAPPER_KEYWORDS = (
             "asignador de sonido",   # es-ES Windows mapper
@@ -1402,41 +880,7 @@ class ConfigToolbar(QWidget):
 
         def _is_mapper(name: str) -> bool:
             nl = name.lower()
-            return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}") any(kw in nl for kw in _MAPPER_KEYWORDS)
+            return any(kw in nl for kw in _MAPPER_KEYWORDS)
 
         try:
             devices = sd.query_devices()
@@ -1470,40 +914,6 @@ class ConfigToolbar(QWidget):
                 combo.setCurrentIndex(i)
                 return
 
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
-
     def _on_volume_changed(self, val: int):
         """Update volume label and save to config."""
         self._vol_label.setText(f"{val}%")
@@ -1533,44 +943,10 @@ class ConfigToolbar(QWidget):
         """Run 'ollama list' and populate the dropdown with actual installed models."""
         if not hasattr(self, '_model_combo') or not self._model_combo:
             return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
         self._model_combo.blockSignals(True)
         self._model_combo.clear()
         self._reload_btn.setEnabled(False)
-        self._reload_btn.setText("⏳")
+        self._reload_btn.setText("ÔÅ│")
 
         saved_model = get_model("ollama")
         models_found = 0
@@ -1618,13 +994,76 @@ class ConfigToolbar(QWidget):
                 self._model_combo.setCurrentIndex(0)
 
         self._model_combo.blockSignals(False)
-        self._reload_btn.setText("↻")
+        self._reload_btn.setText("Ôå╗")
         self._reload_btn.setEnabled(True)
+
+
+    def _save_ollama_model(self):
+        model_id = self._model_combo.currentData() or self._model_combo.currentText()
+        if model_id:
+            set_model(model_id, "ollama")
+            self._pull_status.setText(f"✅ Guardado: {model_id}")
+            self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+            # Sync right-panel if needed
+            if hasattr(self, '_main_win') and self._main_win:
+                right_combo = self._main_win._right_model_combo
+                # If the provider is ollama, we update the combo
+                cfg = load_config()
+                provider = cfg.get("selected_provider", "gemini")
+                if provider == "ollama":
+                    for i in range(right_combo.count()):
+                        if right_combo.itemData(i) == model_id or right_combo.itemText(i) == model_id:
+                            right_combo.setCurrentIndex(i)
+                            break
+                    if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
+                        self._main_win._on_provider_changed(provider)
+
+
+    def _open_folder(self, path: str):
+        import os, subprocess, platform
+        from pathlib import Path
+        p = Path(path).expanduser()
+        if p.exists():
+            if platform.system() == "Windows":
+                os.startfile(p)
+            elif platform.system() == "Darwin":
+                subprocess.Popen(["open", str(p)])
+            else:
+                subprocess.Popen(["xdg-open", str(p)])
+        else:
+            print(f"[JARVIS] Carpeta no encontrada: {p}")
+
+    def _open_ollama_models_folder(self):
+        import platform
+        if platform.system() == "Windows":
+            path = "~/.ollama/models"
+        elif platform.system() == "Darwin":
+            path = "~/.ollama/models"
+        else:
+            path = "/usr/share/ollama/.ollama/models"
+        self._open_folder(path)
+
+    def _open_lm_models_folder(self):
+        self._open_folder("~/.cache/lm-studio/models")
+
+    def _quick_run(self, model_id: str):
+        # Selecciona el modelo si está en la lista o lo agrega
+        found = False
+        for i in range(self._model_combo.count()):
+            if self._model_combo.itemData(i) == model_id or self._model_combo.itemText(i) == model_id:
+                self._model_combo.setCurrentIndex(i)
+                found = True
+                break
+        if not found:
+            self._model_combo.addItem(model_id, model_id)
+            self._model_combo.setCurrentIndex(self._model_combo.count() - 1)
+            
+        self._save_ollama_model()
 
     def _quick_pull(self, model_id: str):
         """Quick pull a preset model in the Ollama tab."""
         self._model_combo.setCurrentText(model_id)
-        self._pull_status.setText(f"⤵  Pulling {model_id}...")
+        self._pull_status.setText(f"ÔñÁ  Pulling {model_id}...")
         self._pull_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
         self._pull_btn.setEnabled(False)
         try:
@@ -1636,18 +1075,18 @@ class ConfigToolbar(QWidget):
             else:
                 subprocess.Popen(["x-terminal-emulator", "-e", cmd], cwd=str(Path.home()))
         except Exception as e:
-            self._pull_status.setText(f"❌ Error: {e}")
+            self._pull_status.setText(f"ÔØî Error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
         QTimer.singleShot(3000, lambda: (
             self._pull_btn.setEnabled(True),
-            self._pull_status.setText("✅ Pull started — check terminal"),
+            self._pull_status.setText("Ô£à Pull started ÔÇö check terminal"),
             self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;"),
         ))
 
     def _on_pull_model(self):
         """Run ollama pull <model> in a terminal window."""
         model_id = self._model_combo.currentData()
-        self._pull_status.setText(f"⬇  Pulling {model_id}...")
+        self._pull_status.setText(f"Ô¼ç  Pulling {model_id}...")
         self._pull_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
         self._pull_btn.setEnabled(False)
 
@@ -1671,13 +1110,13 @@ class ConfigToolbar(QWidget):
                     cwd=str(Path.home())
                 )
         except Exception as e:
-            self._pull_status.setText(f"❌ Error: {e}")
+            self._pull_status.setText(f"ÔØî Error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
         # Re-enable after a moment
         QTimer.singleShot(3000, lambda: (
             self._pull_btn.setEnabled(True),
-            self._pull_status.setText("✅ Pull started — check terminal"),
+            self._pull_status.setText("Ô£à Pull started ÔÇö check terminal"),
             self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;"),
         ))
 
@@ -1701,11 +1140,11 @@ class ConfigToolbar(QWidget):
                     ["x-terminal-emulator", "-e", cmd],
                     cwd=str(Path.home())
                 )
-            self._srv_status.setText("▲ Server starting...")
+            self._srv_status.setText("Ôû▓ Server starting...")
             self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             QTimer.singleShot(3000, self._check_server_status)
         except Exception as e:
-            self._srv_status.setText(f"❌ Error: {e}")
+            self._srv_status.setText(f"ÔØî Error: {e}")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _on_down_server(self):
@@ -1720,10 +1159,10 @@ class ConfigToolbar(QWidget):
                 subprocess.run(["pkill", "-f", "ollama"], capture_output=True, timeout=5)
             else:
                 subprocess.run(["pkill", "-f", "ollama"], capture_output=True, timeout=5)
-            self._srv_status.setText("▼ Server stopped")
+            self._srv_status.setText("Ôû╝ Server stopped")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
         except Exception as e:
-            self._srv_status.setText(f"❌ Error: {e}")
+            self._srv_status.setText(f"ÔØî Error: {e}")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _check_server_status(self):
@@ -1735,87 +1174,19 @@ class ConfigToolbar(QWidget):
                     capture_output=True, text=True, timeout=3
                 )
                 if "ollama.exe" in r.stdout:
-                    self._srv_status.setText("●  Server: RUNNING")
+                    self._srv_status.setText("ÔùÅ  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
             else:
                 r = subprocess.run(
                     ["pgrep", "-f", "ollama"], capture_output=True, timeout=3
                 )
                 if r.returncode == 0:
-                    self._srv_status.setText("●  Server: RUNNING")
+                    self._srv_status.setText("ÔùÅ  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
-
-    def _run_selected_model(self):
-        \"\"\"Run the currently selected Ollama model via CLI.\"\"\"
-        # Get selected model id
-        model_id = self._model_combo.currentData()
-        if not model_id:
-            self._pull_status.setText("❌ No model selected")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            return
-        # Run the model via CLI
-        try:
-            result = subprocess.run(
-                ["ollama", "run", model_id],
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            if result.returncode == 0:
-                self._pull_status.setText("✅ Model output captured")
-                self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN [{model_id}]:\\n{result.stdout}")
-            else:
-                err_msg = result.stderr.strip() or result.stdout.strip()
-                self._pull_status.setText(f"❌ Run failed: {err_msg[:200]}")
-                self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-                self._log.append_log(f"OLLAMA RUN ERROR [{model_id}]: {err_msg}")
-        except subprocess.TimeoutExpired:
-            self._pull_status.setText("❌ Run timed out")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log("OLLAMA RUN TIMED OUT")
-        except Exception as e:
-            self._pull_status.setText(f"❌ Run error: {e}")
-            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
-            self._log.append_log(f"OLLAMA RUN EXCEPTION: {e}")
-            self._srv_status.setText("○  Server: STOPPED")
+            self._srv_status.setText("Ôùï  Server: STOPPED")
             self._srv_status.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
         except Exception:
-            self._srv_status.setText("○  Server: unknown")
+            self._srv_status.setText("Ôùï  Server: unknown")
             self._srv_status.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
