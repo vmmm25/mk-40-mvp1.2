@@ -206,12 +206,26 @@ def _play_wav_file(wav_data: str | bytes, volume: float = 1.0, device: int | Non
             else:
                 dtype = 'int8'
                 
-            stream = sd.RawOutputStream(
-                samplerate=samplerate,
-                channels=channels,
-                dtype=dtype,
-                device=device,
-            )
+            try:
+                stream = sd.RawOutputStream(
+                    samplerate=samplerate,
+                    channels=channels,
+                    dtype=dtype,
+                    device=device,
+                )
+            except sd.PortAudioError as pa_err:
+                if "Invalid sample rate" in str(pa_err) and device is not None:
+                    fallback = find_fallback_device(device, "output", samplerate, channels)
+                    print(f"[JARVIS] ⚠️ Speaker device {device} doesn't support {samplerate}Hz. Falling back to device index {fallback}.")
+                    device = fallback
+                    stream = sd.RawOutputStream(
+                        samplerate=samplerate,
+                        channels=channels,
+                        dtype=dtype,
+                        device=device,
+                    )
+                else:
+                    raise
             with stream:
                 chunk_size = 1024
                 data = wf.readframes(chunk_size)
@@ -371,7 +385,7 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
                     "Transcribe este archivo de audio con la mayor precisión posible. Responde únicamente con el texto transcrito en el idioma original del hablante, sin añadir explicaciones, traducciones o metadatos."
                 ]
             )
-            return response.text.strip()
+            return response.text.strip() if response.text else ""
             
         raw_text = await asyncio.to_thread(run_gemini)
         return _clean_whisper_transcript(raw_text)
@@ -386,6 +400,8 @@ async def _synthesize_with_piper_fallback(text: str, cfg: dict, reason: str) -> 
         cmd = [
             piper_p,
             "-m", piper_m,
+            "--length_scale", "1.1", # Slightly slower and clearer
+            "--sentence_silence", "0.3",
             "-f", "-", # Output WAV directly to stdout
         ]
         def run_piper():
@@ -426,6 +442,8 @@ async def _synthesize_speech_in_memory(text: str, cfg: dict) -> bytes | None:
         cmd = [
             piper_p,
             "-m", piper_m,
+            "--length_scale", "1.1", # Slightly slower and clearer
+            "--sentence_silence", "0.3",
             "-f", "-", # Output WAV directly to stdout
         ]
         
@@ -709,16 +727,11 @@ class JarvisLive:
                 try:
                     chunk = await asyncio.wait_for(
                         self.audio_in_queue.get(),
-                        timeout=0.1
+                        timeout=0.2
                     )
                 except asyncio.TimeoutError:
-                    if (
-                        self._turn_done_event
-                        and self._turn_done_event.is_set()
-                        and self.audio_in_queue.empty()
-                    ):
+                    if self.audio_in_queue.empty():
                         self.set_speaking(False)
-                        self._turn_done_event.clear()
                     continue
                 self.set_speaking(True)
                 # Apply volume scaling
@@ -895,6 +908,32 @@ class JarvisChat:
             self.ui.write_log(f"ERR: {str(e)}")
             traceback.print_exc()
 
+        # Si el voice_wrapper está habilitado, pero la entrada fue de texto, leemos la respuesta
+        if not from_voice and self.voice_enabled and response_content and not _engine_stop.is_set():
+            self._is_playing_tts = True
+            self.ui.set_state("SPEAKING")
+            try:
+                cleaned = _clean_text_for_tts(response_content)
+                if cleaned:
+                    tts_engine = self.cfg.get("tts_engine", "gemini")
+                    if tts_engine == "piper":
+                        if not hasattr(self, 'piper_provider'):
+                            from core.tts_piper import PiperTTSProvider
+                            self.piper_provider = PiperTTSProvider()
+                        # Run blocking TTS in a background thread so UI doesn't freeze
+                        await asyncio.to_thread(self.piper_provider.speak, cleaned, True)
+                    else:
+                        wav_bytes = await _synthesize_speech_in_memory(response_content, self.cfg)
+                        if wav_bytes:
+                            spk_cfg = self.cfg.get("audio_output_device")
+                            spk_dev = spk_cfg if isinstance(spk_cfg, int) and spk_cfg not in (0, 2) else None
+                            vol = max(0, min(100, self.cfg.get("audio_volume", 80))) / 100.0
+                            await asyncio.to_thread(_play_wav_file, wav_bytes, vol, spk_dev)
+            except Exception as e:
+                print(f"[JARVIS] ❌ [TTS Text-Mode] exception: {e}")
+            finally:
+                self._is_playing_tts = False
+
         if not from_voice:
             if not self.ui.muted:
                 self.ui.set_state("LISTENING")
@@ -947,14 +986,30 @@ class JarvisChat:
             mic_dev = None
 
         try:
-            stream = sd.InputStream(
-                samplerate=16000,
-                channels=1,
-                dtype="int16",
-                blocksize=1024,
-                callback=callback,
-                device=mic_dev,
-            )
+            try:
+                stream = sd.InputStream(
+                    samplerate=16000,
+                    channels=1,
+                    dtype="int16",
+                    blocksize=1024,
+                    callback=callback,
+                    device=mic_dev,
+                )
+            except sd.PortAudioError as pa_err:
+                if "Invalid sample rate" in str(pa_err) and mic_dev is not None:
+                    fallback = find_fallback_device(mic_dev, "input", 16000, 1)
+                    print(f"[JARVIS] ⚠️ [Voice Wrapper] Mic device {mic_dev} doesn't support 16000Hz. Falling back to device index {fallback}.")
+                    mic_dev = fallback
+                    stream = sd.InputStream(
+                        samplerate=16000,
+                        channels=1,
+                        dtype="int16",
+                        blocksize=1024,
+                        callback=callback,
+                        device=mic_dev,
+                    )
+                else:
+                    raise
             stream.start()
         except Exception as e:
             print(f"[JARVIS] ❌ [Voice Wrapper] Mic error: {e}")
@@ -1036,6 +1091,8 @@ class JarvisChat:
             _save_pcm_to_wav(temp_in, speech_data, sample_rate=16000)
 
             # 2. Transcribe WAV
+            stt_engine = self.cfg.get("stt_engine", "gemini")
+            self.ui.write_log(f"🎙 Transcribiendo vía {stt_engine.upper()} STT...")
             transcription = await _transcribe_audio(temp_in, self.cfg)
             if not transcription or not transcription.strip():
                 print("[JARVIS] [Voice Wrapper] Transcripción vacía. Ignorando.")
@@ -1049,26 +1106,38 @@ class JarvisChat:
             response_text = await self._process_message(transcription, from_voice=True)
             
             if response_text and not _engine_stop.is_set():
-                # 4. Synthesize TTS 100% in-memory (RAM-Only)
                 self._is_playing_tts = True
                 self.ui.set_state("SPEAKING")
                 
-                wav_bytes = await _synthesize_speech_in_memory(response_text, self.cfg)
-                if wav_bytes:
-                    # 5. Play synthetic voice WAV directly from memory
-                    spk_cfg = self.cfg.get("audio_output_device")
-                    import platform
-                    if isinstance(spk_cfg, int) and spk_cfg in (0, 2) and platform.system() == "Windows":
-                        spk_dev = None
-                    elif isinstance(spk_cfg, int):
-                        spk_dev = spk_cfg
+                tts_engine = self.cfg.get("tts_engine", "gemini")
+                self.ui.write_log(f"🗣 Hablando vía {tts_engine.upper()} TTS...")
+                cleaned_text = _clean_text_for_tts(response_text)
+                
+                if cleaned_text:
+                    if tts_engine == "piper":
+                        if not hasattr(self, 'piper_provider'):
+                            from core.tts_piper import PiperTTSProvider
+                            self.piper_provider = PiperTTSProvider()
+                        # Usar el módulo nativo PiperTTSProvider de forma bloqueante (en to_thread)
+                        await asyncio.to_thread(self.piper_provider.speak, cleaned_text, True)
                     else:
-                        spk_dev = None
-                        
-                    vol = max(0, min(100, self.cfg.get("audio_volume", 80))) / 100.0
-                    
-                    # Play WAV bytes synchronously in thread to avoid freezing visualizer thread
-                    await asyncio.to_thread(_play_wav_file, wav_bytes, vol, spk_dev)
+                        # 4. Synthesize TTS 100% in-memory (RAM-Only)
+                        wav_bytes = await _synthesize_speech_in_memory(response_text, self.cfg)
+                        if wav_bytes:
+                            # 5. Play synthetic voice WAV directly from memory
+                            spk_cfg = self.cfg.get("audio_output_device")
+                            import platform
+                            if isinstance(spk_cfg, int) and spk_cfg in (0, 2) and platform.system() == "Windows":
+                                spk_dev = None
+                            elif isinstance(spk_cfg, int):
+                                spk_dev = spk_cfg
+                            else:
+                                spk_dev = None
+                                
+                            vol = max(0, min(100, self.cfg.get("audio_volume", 80))) / 100.0
+                            
+                            # Play WAV bytes synchronously in thread to avoid freezing visualizer thread
+                            await asyncio.to_thread(_play_wav_file, wav_bytes, vol, spk_dev)
                     
         except Exception as e:
             print(f"[JARVIS] ❌ [Voice Wrapper] Voice turn exception: {e}")
@@ -1189,10 +1258,19 @@ def main():
             _engine_stop.clear()
             engine = _create_engine(ui)
             try:
-                asyncio.run(engine.run())
+                async def run_engine():
+                    try:
+                        await engine.run()
+                    finally:
+                        if hasattr(engine, "provider") and hasattr(engine.provider, "close"):
+                            await engine.provider.close()
+                asyncio.run(run_engine())
             except KeyboardInterrupt:
                 print("\n🔴 Shutting down...")
                 break
+            except Exception as e:
+                # Handle asyncio proactor shutdown issues gracefully
+                pass
 
             if not _engine_restart.is_set():
                 break
