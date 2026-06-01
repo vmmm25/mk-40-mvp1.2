@@ -18,8 +18,8 @@ WHISPER_ZIP_URL = "https://github.com/ggerganov/whisper.cpp/releases/download/v1
 WHISPER_MODEL_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
 
 PIPER_ZIP_URL = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
-PIPER_MODEL_ONNX_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx"
-PIPER_MODEL_JSON_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json"
+PIPER_MODEL_ONNX_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_MX/claude/high/es_MX-claude-high.onnx"
+PIPER_MODEL_JSON_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_MX/claude/high/es_MX-claude-high.onnx.json"
 
 BASE_DIR = Path(__file__).resolve().parent
 BIN_DIR = BASE_DIR / "bin"
@@ -44,7 +44,7 @@ def download_file(url: str, dest_path: Path):
         sys.stdout.flush()
 
     try:
-        urllib.request.urlretrieve(url, str(dest_path), reporthook=progress_hook, timeout=60)
+        urllib.request.urlretrieve(url, str(dest_path), reporthook=progress_hook)
         print("\n   [OK] Download complete.")
     except Exception as e:
         print(f"\n   [ERR] Download failed: {e}")
@@ -108,11 +108,11 @@ def main():
     else:
         print("\n[OK] Piper already installed.")
 
-    piper_model_onnx = PIPER_DIR / "es_ES-sharvard-medium.onnx"
-    piper_model_json = PIPER_DIR / "es_ES-sharvard-medium.onnx.json"
+    piper_model_onnx = PIPER_DIR / "es_MX-claude-high.onnx"
+    piper_model_json = PIPER_DIR / "es_MX-claude-high.onnx.json"
     
     if not piper_model_onnx.exists():
-        print("\n--- [MODEL] PIPER SPANISH VOICE MODEL (ONNX) ---")
+        print("\n--- [MODEL] PIPER SPANISH VOICE MODEL (ONNX - HIGH QUALITY) ---")
         download_file(PIPER_MODEL_ONNX_URL, piper_model_onnx)
     else:
         print("[OK] Piper Spanish ONNX model already exists.")
