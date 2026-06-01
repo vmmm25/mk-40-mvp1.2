@@ -1,66 +1,52 @@
-# 🧠 MARK-40 (JARVIS) - Asistente IA Multimodal Cyberpunk
+# 🧠 J.A.R.V.I.S. (MARK-40) - Asistente IA Multimodal Cyberpunk
 
-MARK-40 es un asistente virtual multimodal diseñado con una interfaz **Cyberpunk HUD**. Integra soporte para modelos locales (Ollama, LM Studio, Piper, Whisper.cpp) y modelos en la nube (Gemini, OpenRouter) para ofrecer capacidades avanzadas de visión, transcripción y síntesis de voz.
+MARK-40 es un asistente virtual multimodal diseñado con una interfaz **Cyberpunk HUD**. Integra soporte para modelos locales (Ollama, LM Studio, Piper, Whisper.cpp) y modelos en la nube (Gemini, OpenRouter) para ofrecer capacidades avanzadas de visión, transcripción y síntesis de voz totalmente personalizables.
 
 ![HUD Interface](https://via.placeholder.com/800x400.png?text=HUD+Interface+Preview)
 
 ## ✨ Características Principales
 
 *   **Multi-Motor de Lenguaje (LLM):** Soporta ejecución local mediante Ollama y LM Studio, o a través de la nube usando la API de Gemini y OpenRouter.
-*   **Visión Computacional:** Capacidad de leer la pantalla actual o ventanas específicas para entender el contexto visual.
-*   **Voz Modular (STT & TTS):** 
-    *   *Oído (STT):* Compatible con Whisper.cpp (Local) o Gemini (Nube).
-    *   *Boca (TTS):* Compatible con Piper (Local) o Gemini (Nube).
-*   **Interfaz Cyberpunk Reactiva:** Un diseño tipo HUD semitransparente construido en PyQt6 con animaciones e indicadores de estado.
-*   **Gestión Integrada de Modelos:** Accesos directos para cambiar rápidamente entre modelos, recargarlos "en caliente" y administrar los archivos de modelos locales directamente desde la UI.
+*   **Visión Computacional (Ojos):** Capacidad de leer la pantalla actual o ventanas específicas para entender el contexto visual e interactuar contigo sobre lo que estás viendo.
+*   **Voz Modular (Oído & Boca):** 
+    *   *STT (Transcripción):* Compatible con Whisper.cpp (Local offline) o Gemini (Nube ultrarrápida).
+    *   *TTS (Síntesis):* Compatible con Piper (Local offline) o Gemini (Nube).
+*   **Interfaz Cyberpunk Reactiva:** Un diseño tipo HUD semitransparente construido en PyQt6 con animaciones e indicadores de estado interactivos.
+*   **Gestión Integrada:** Accesos directos nativos a tus carpetas de modelos, cambio rápido de configuración sin reiniciar y panel centralizado.
 
-## 🛠 Instalación
+## 🛠 Instalación Rápida (Click & Play)
 
-1. Clona el repositorio:
+MARK-40 incluye un instalador automático para Windows.
+
+1. **Clona o descarga este repositorio:**
    ```bash
-   git clone https://github.com/tu-usuario/MARK-40.git
-   cd MARK-40
+   git clone https://github.com/vmmm25/mk-40-mvp1.2.git
    ```
 
-2. Crea un entorno virtual (Recomendado):
-   ```bash
-   python -m venv .venv
-   # Windows:
-   .venv\Scripts\activate
-   # Linux/macOS:
-   source .venv/bin/activate
-   ```
+2. **Abre la carpeta del proyecto y ejecuta:**
+   Haz doble clic sobre el archivo **`Run_JARVIS.bat`**. 
+   
+   *(El script detectará si es tu primera vez, instalará el entorno virtual Python, descargará las librerías necesarias y abrirá el Asistente automáticamente).*
 
-3. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## 🚀 Uso
-
-Inicia el asistente ejecutando el archivo principal:
-
-```bash
-python main.py
-```
+## 🚀 Uso Avanzado
 
 Al iniciar por primera vez, verás el panel de configuración (engranaje inferior derecho). Desde allí podrás:
 - Conectar tu API Key de Gemini u OpenRouter.
-- Configurar tus motores locales y descargar los modelos (Ollama/LM Studio).
-- Especificar la ruta a los ejecutables locales de Whisper y Piper si deseas Voz Offline.
+- Configurar tus motores locales y enlazar tu servidor (Ollama/LM Studio).
+- Especificar la ruta a los ejecutables locales de Whisper y Piper si deseas tener control total por Voz Offline.
 
 ## 📦 Motores Locales Soportados
 
-Para utilizar a JARVIS sin conexión a internet, necesitas descargar al menos uno de los siguientes motores e indicarle a JARVIS su ruta en la configuración:
+Para utilizar a JARVIS sin conexión a internet (100% privado), te recomendamos descargar e integrar los siguientes motores:
 
-- [Ollama](https://ollama.com/) (Para modelos de texto locales).
-- [LM Studio](https://lmstudio.ai/) (Para cargar GGUFs locales como servidor).
-- [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) (Para transcripción STT local).
-- [Piper](https://github.com/rhasspy/piper) (Para síntesis de voz TTS local).
+- [Ollama](https://ollama.com/) (Ejecución de modelos de lenguaje).
+- [LM Studio](https://lmstudio.ai/) (Servidor OpenAI-compatible).
+- [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) (Transcripción de voz).
+- [Piper](https://github.com/rhasspy/piper) (Síntesis de voz).
 
 ## 📄 Licencia
 
 Este proyecto se distribuye bajo la Licencia MIT. Eres libre de usarlo, modificarlo y distribuirlo de forma gratuita o comercial.
 
 ---
-*Si este proyecto te parece interesante, no dudes en dejar una estrella ⭐.*
+*Si este proyecto te parece útil o interesante, no dudes en dejar una estrella ⭐ en el repositorio.*
