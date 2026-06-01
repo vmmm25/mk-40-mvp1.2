@@ -1,97 +1,66 @@
-# 🤖 MARK XL (40) — J.A.R.V.I.S Series
-## El Asistente Personal de Inteligencia Artificial Definitivo
+# 🧠 MARK-40 (JARVIS) - Asistente IA Multimodal Cyberpunk
 
-**Desarrollado por:** lolpl 🚀
+MARK-40 es un asistente virtual multimodal diseñado con una interfaz **Cyberpunk HUD**. Integra soporte para modelos locales (Ollama, LM Studio, Piper, Whisper.cpp) y modelos en la nube (Gemini, OpenRouter) para ofrecer capacidades avanzadas de visión, transcripción y síntesis de voz.
 
----
-
-## 📚 Índice
-- [Descripción del Proyecto](# descripción-del-proyecto)
-- [Características Principales](# características-principales)
-- [Requisitos de Hardware y Sistema](# requisitos-de-hardware-y-sistema)
-- [Instalación y Configuración](# instalación-y-configuración)
-  - [1. Clonar el Repositorio](# 1-clonar-el-repositorio)
-  - [2. Instalar Dependencias de Python](# 2-instalar-dependencias-de-python)
-  - [3. Instalar Controladores de Playwright](# 3-instalar-controladores-de-playwright)
-  - [4. Configurar Claves de API](# 4-configurar-claves-de-api)
-  - [5. Instalar Motores de Voz Locales](# 5-instalar-motores-de-voz-locales)
-- [Uso del Asistente](# uso-del-asistente)
-- [Contribuir](# contribuir)
-- [Licencia](# licencia)
-
----
-
-## 📝 Descripción del Proyecto
-> **MARK XL** es un asistente de IA personal, multiplataforma y en tiempo real. Funciona localmente sin suscripciones, proporcionando diálogo de voz natural, análisis avanzado de documentos, visión por computadora y automatización de flujos de trabajo mediante una interfaz HUD cyberpunk interactiva.
-
----
+![HUD Interface](https://via.placeholder.com/800x400.png?text=HUD+Interface+Preview)
 
 ## ✨ Características Principales
-| Característica | Descripción |
-| :--- | :--- |
-| 🎙️ **Voz en Tiempo Real** | Conversación ultra-baja latencia con soporte híbrido (Local y Nube). |
-| 🖥️ **Control del Sistema** | Abrir aplicaciones, administrar archivos y ejecutar comandos en la terminal. |
-| 🧩 **Tareas Autónomas** | Planificación inteligente y ejecución paso a paso. |
-| 👁️ **Visión de Pantalla** | Procesamiento en tiempo real de la pantalla y cámara web. |
-| 🧠 **Memoria Persistente** | Recuerda preferencias y proyectos entre sesiones. |
-| 🎨 **Interfaz Cyberpunk HUD** | Panel de control personalizable y dinámico. |
-| 📂 **Carga de Archivos** | Arrastrar y soltar PDFs, imágenes o código para análisis. |
 
----
+*   **Multi-Motor de Lenguaje (LLM):** Soporta ejecución local mediante Ollama y LM Studio, o a través de la nube usando la API de Gemini y OpenRouter.
+*   **Visión Computacional:** Capacidad de leer la pantalla actual o ventanas específicas para entender el contexto visual.
+*   **Voz Modular (STT & TTS):** 
+    *   *Oído (STT):* Compatible con Whisper.cpp (Local) o Gemini (Nube).
+    *   *Boca (TTS):* Compatible con Piper (Local) o Gemini (Nube).
+*   **Interfaz Cyberpunk Reactiva:** Un diseño tipo HUD semitransparente construido en PyQt6 con animaciones e indicadores de estado.
+*   **Gestión Integrada de Modelos:** Accesos directos para cambiar rápidamente entre modelos, recargarlos "en caliente" y administrar los archivos de modelos locales directamente desde la UI.
 
-## ⚡ Instalación y Configuración
-Sigue estos pasos para poner tu MARK XL en marcha en Windows 10/11.
+## 🛠 Instalación
 
-### 1. Clonar el repositorio
-```bash
-git clone <ENLACE_DE_GITHUB>
-cd update-mk40
-```
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/tu-usuario/MARK-40.git
+   cd MARK-40
+   ```
 
-### 2. Instalar dependencias de Python
-```bash
-pip install -r requirements.txt
-```
+2. Crea un entorno virtual (Recomendado):
+   ```bash
+   python -m venv .venv
+   # Windows:
+   .venv\Scripts\activate
+   # Linux/macOS:
+   source .venv/bin/activate
+   ```
 
-### 3. Instalar controladores de Playwright
-```bash
-playwright install
-```
+3. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 4. Configurar claves de API
-1. Copia `config/api_keys.json.example` a `config/api_keys.json`.
-2. Introduce tus claves en el archivo.
+## 🚀 Uso
 
-```json
-{
-  "gemini_api_key": "TU_API_KEY_AQUÍ",
-  "openrouter_api_key": "OPCIONAL_TU_OPENROUTER_KEY"
-}
-```
+Inicia el asistente ejecutando el archivo principal:
 
-### 5. Instalar motores de voz locales (Whisper & Piper)
-```bash
-python download_engines.py
-```
-
----
-
-## 🚀 Uso del Asistente
 ```bash
 python main.py
 ```
 
+Al iniciar por primera vez, verás el panel de configuración (engranaje inferior derecho). Desde allí podrás:
+- Conectar tu API Key de Gemini u OpenRouter.
+- Configurar tus motores locales y descargar los modelos (Ollama/LM Studio).
+- Especificar la ruta a los ejecutables locales de Whisper y Piper si deseas Voz Offline.
+
+## 📦 Motores Locales Soportados
+
+Para utilizar a JARVIS sin conexión a internet, necesitas descargar al menos uno de los siguientes motores e indicarle a JARVIS su ruta en la configuración:
+
+- [Ollama](https://ollama.com/) (Para modelos de texto locales).
+- [LM Studio](https://lmstudio.ai/) (Para cargar GGUFs locales como servidor).
+- [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) (Para transcripción STT local).
+- [Piper](https://github.com/rhasspy/piper) (Para síntesis de voz TTS local).
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la Licencia MIT. Eres libre de usarlo, modificarlo y distribuirlo de forma gratuita o comercial.
+
 ---
-
-## 🤝 Contribuir
-1. Haz fork del repositorio.  
-2. Crea una rama para tu característica o corrección.  
-3. Ejecuta `python main.py` y verifica los cambios.  
-4. Abre un Pull Request describiendo tu aporte.
-
----
-
-## 📜 Licencia
-Este proyecto está bajo la licencia MIT. Consulta el archivo `LICENSE` para más detalles.
-
----
+*Si este proyecto te parece interesante, no dudes en dejar una estrella ⭐.*
