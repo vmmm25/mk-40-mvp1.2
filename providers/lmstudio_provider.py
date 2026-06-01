@@ -268,6 +268,9 @@ class LMStudioProvider(BaseProvider):
             {"id": "local-model", "name": "Local Model (default)"},
         ]
 
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+
 
 register_provider("lmstudio", LMStudioProvider)
-

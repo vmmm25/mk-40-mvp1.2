@@ -274,5 +274,9 @@ class OpenRouterProvider(BaseProvider):
             {"id": "z-ai/glm-4.5-air:free",                          "name": "GLM 4.5 Air (free)"},
         ]
 
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+
 
 register_provider("openrouter", OpenRouterProvider)

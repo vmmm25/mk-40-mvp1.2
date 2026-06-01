@@ -163,6 +163,10 @@ class BaseProvider(ABC):
         """Parse provider-specific response to our Message format."""
         ...
 
+    async def close(self):
+        """Clean up resources like aiohttp sessions."""
+        pass
+
     @staticmethod
     def convert_tools_openai(tools: list[dict]) -> list[dict]:
         """Convert tool declarations to OpenAI-compatible format.

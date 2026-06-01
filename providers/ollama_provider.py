@@ -344,5 +344,9 @@ class OllamaProvider(BaseProvider):
         except Exception:
             return False
 
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+
 
 register_provider("ollama", OllamaProvider)
