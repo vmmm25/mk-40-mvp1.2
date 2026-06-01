@@ -147,7 +147,7 @@ def _detect_camera_index() -> int:
 
 
 def _get_camera_index() -> int:
-    cfg = _load_config()
+    cfg = load_config()
     if "camera_index" in cfg:
         return int(cfg["camera_index"])
     return _detect_camera_index()
