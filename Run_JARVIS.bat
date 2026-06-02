@@ -8,7 +8,7 @@ echo ===================================================
 echo.
 
 :: Comprobar si existe el entorno virtual
-IF NOT EXIST ".venv" (
+IF NOT EXIST ".venv\Scripts\activate.bat" (
     echo [*] Primera ejecucion detectada. Configurando entorno...
     echo [*] Creando entorno virtual en .venv...
     python -m venv .venv
@@ -16,7 +16,7 @@ IF NOT EXIST ".venv" (
     echo [*] Activando entorno e instalando dependencias...
     call .venv\Scripts\activate.bat
     python -m pip install --upgrade pip
-    pip install -r requirements.txt
+    python setup.py
     
     echo.
     echo [OK] Entorno configurado correctamente.

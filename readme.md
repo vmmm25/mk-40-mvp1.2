@@ -44,6 +44,10 @@ Para utilizar a JARVIS sin conexión a internet (100% privado), te recomendamos 
 - [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) (Transcripción de voz).
 - [Piper](https://github.com/rhasspy/piper) (Síntesis de voz).
 
+## 📝 Changelog
+
+* **[v1.2.1] - Fix Instalación:** Se ha corregido la creación del entorno virtual y se han añadido dependencias faltantes (`playwright`, `psutil`, `requests`) para que el programa inicie correctamente en máquinas nuevas sin errores de módulos. Ahora `Run_JARVIS.bat` instala automáticamente los navegadores necesarios de Playwright.
+
 ## 📄 Licencia
 
 Este proyecto se distribuye bajo la Licencia MIT. Eres libre de usarlo, modificarlo y distribuirlo de forma gratuita o comercial.
