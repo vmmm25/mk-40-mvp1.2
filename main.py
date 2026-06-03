@@ -996,7 +996,7 @@ class JarvisChat:
         audio_queue = asyncio.Queue()
         
         def callback(indata, frames, time_info, status):
-            if _engine_stop.is_set() or self.ui.muted or self._is_playing_tts:
+            if _engine_stop.is_set() or self.ui.muted or self._is_playing_tts or getattr(self, '_is_processing_voice', False):
                 return
             data = indata.tobytes()
             # Push to visualizer
@@ -1065,7 +1065,7 @@ class JarvisChat:
                 except asyncio.TimeoutError:
                     continue
 
-                if self._is_playing_tts:
+                if self._is_playing_tts or getattr(self, '_is_processing_voice', False):
                     recording = False
                     audio_buffer.clear()
                     silence_counter = 0
@@ -1101,6 +1101,7 @@ class JarvisChat:
                             speech_data = b"".join(audio_buffer)
                             audio_buffer.clear()
                             
+                            self._is_processing_voice = True
                             asyncio.create_task(self._handle_voice_turn(speech_data))
         except Exception as e:
             print(f"[JARVIS] ❌ [Voice Wrapper] Loop exception: {e}")
@@ -1176,6 +1177,7 @@ class JarvisChat:
             print(f"[JARVIS] ❌ [Voice Wrapper] Voice turn exception: {e}")
             self.ui.write_log(f"ERR: Error en procesamiento de voz: {e}")
         finally:
+            self._is_processing_voice = False
             self._is_playing_tts = False
             if not self.ui.muted:
                 self.ui.set_state("LISTENING")
