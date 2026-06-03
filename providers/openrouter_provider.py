@@ -52,6 +52,8 @@ class OpenRouterProvider(BaseProvider):
         if msg.role == "tool":
             d["tool_call_id"] = msg.tool_call_id or ""
             d["content"] = msg.content
+            if msg.name:
+                d["name"] = msg.name
             return d
 
         # Handle assistant messages with tool calls
