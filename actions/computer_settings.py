@@ -629,12 +629,24 @@ def computer_settings(
         player.write_log(f"[Settings] {action}")
 
     if action in _DANGEROUS_ACTIONS:
-        confirmed = str(params.get("confirmed", "")).lower()
-        if confirmed not in ("yes", "true", "1", "confirm"):
-            return (
-                f"This will {action} the computer. "
-                f"Please confirm by calling again with confirmed=yes."
-            )
+        # Require password verification
+        config_path = _get_base_dir() / "config" / "config.json"
+        admin_pwd = ""
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                admin_pwd = json.load(f).get("admin_password", "")
+        except Exception:
+            pass
+
+        if admin_pwd:
+            provided_pwd = str(params.get("password", "")).strip()
+            if provided_pwd != admin_pwd:
+                return f"Acceso Denegado. La acción '{action}' requiere verificación. Pidele al usuario que dicte la contraseña maestra de seguridad para continuar."
+        else:
+            # Fallback to simple confirmation if no password set
+            confirmed = str(params.get("confirmed", "")).lower()
+            if confirmed not in ("yes", "true", "1", "confirm"):
+                return f"This will {action} the computer. Please confirm by calling again with confirmed=yes."
 
     if action == "volume_set":
         try:

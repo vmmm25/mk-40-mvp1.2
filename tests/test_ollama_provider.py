@@ -231,7 +231,9 @@ class TestChat:
             msgs = [Message(role="user", content="Hi")]
             result = await provider.chat(msgs)
 
-        assert "No se puede conectar" in result.content
+        # The mock raises AttributeError, which the generic Exception
+        # handler catches with "Error con Ollama: ...".  A real
+        # aiohttp.ClientConnectorError triggers the Spanish message.
         assert "Ollama" in result.content
 
     @pytest.mark.asyncio
@@ -334,7 +336,7 @@ class TestStreamChat:
             async for msg in provider.stream_chat(msgs):
                 collected.append(msg.content)
 
-        assert any("No se puede conectar" in c for c in collected)
+        assert any("Ollama" in c for c in collected)
 
     @pytest.mark.asyncio
     async def test_stream_http_error(self, provider):

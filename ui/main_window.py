@@ -20,12 +20,12 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QBrush, QColor, QDragEnterEvent, QDropEvent, QFont, QFontDatabase,
     QKeySequence, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap,
-    QRadialGradient, QShortcut,
+    QRadialGradient, QShortcut, QAction,
 )
 from PyQt6.QtWidgets import (
     QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
     QMainWindow, QProgressBar, QPushButton, QSizePolicy, QTextEdit, QVBoxLayout, QWidget,
-    QTabWidget, QSlider,
+    QTabWidget, QSlider, QMenu,
 )
 
 from memory.config_manager import load_config, save_config, get_model, set_model, is_configured, get_lmstudio_url
@@ -1263,28 +1263,58 @@ class MainWindow(QMainWindow):
         sep_chat1.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
         chat_col.addWidget(sep_chat1)
 
-        # File drop zone side-by-side or compact
-        fd_row = QHBoxLayout(); fd_row.setSpacing(8)
+        # --- NEW ACTIONS ROW ---
+        actions_row = QHBoxLayout(); actions_row.setSpacing(12)
+        
+        # 1. File Drop Zone (Square)
         self._drop_zone = FileDropZone()
         self._drop_zone.file_selected.connect(self._on_file_selected)
-        self._drop_zone.setFixedWidth(200)
-        fd_row.addWidget(self._drop_zone)
-
+        self._drop_zone.setFixedSize(120, 120)
+        actions_row.addWidget(self._drop_zone)
+        
+        # 2. File Info
         fd_info = QVBoxLayout()
-        fd_info.addWidget(_sec("CARGAR ARCHIVOS (FILE UPLOAD)"))
+        fd_info.addWidget(_sec("CARGAR ARCHIVOS"))
         self._file_hint = QLabel("No hay archivo cargado — arrastra o haz clic para subir")
         self._file_hint.setFont(QFont("Segoe UI", 9))
         self._file_hint.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
         self._file_hint.setWordWrap(True)
         fd_info.addWidget(self._file_hint)
-        fd_row.addLayout(fd_info)
-        chat_col.addLayout(fd_row)
+        fd_info.addStretch()
+        actions_row.addLayout(fd_info, stretch=2)
+        
+        # 3. Audio Toggles
+        audio_col = QVBoxLayout(); audio_col.setSpacing(4)
+        audio_col.addWidget(_sec("MOTOR DE AUDIO"))
+        
+        audio_btns = QHBoxLayout(); audio_btns.setSpacing(4)
+        self._audio_gemini_btn = QPushButton("AUDIO\nGEMINI")
+        self._audio_gemini_btn.setFixedHeight(50)
+        self._audio_gemini_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._audio_gemini_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._audio_gemini_btn.clicked.connect(lambda: self._set_audio_engine("gemini"))
+        audio_btns.addWidget(self._audio_gemini_btn)
+        
+        self._audio_local_btn = QPushButton("WHISPER /\nPIPER")
+        self._audio_local_btn.setFixedHeight(50)
+        self._audio_local_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._audio_local_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._audio_local_btn.clicked.connect(lambda: self._set_audio_engine("local"))
+        audio_btns.addWidget(self._audio_local_btn)
+        
+        audio_col.addLayout(audio_btns)
+        audio_col.addStretch()
+        actions_row.addLayout(audio_col, stretch=2)
+        
+        chat_col.addLayout(actions_row)
+        
+        self._update_audio_toggles()
 
         sep_chat2 = QFrame(); sep_chat2.setFrameShape(QFrame.Shape.HLine)
         sep_chat2.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
         chat_col.addWidget(sep_chat2)
 
-        # Provider and Model selector beautifully spread
+        # Provider and Model selector
         chat_col.addWidget(_sec("SELECCIONAR PROVEEDOR DE IA"))
         prov_row = QHBoxLayout(); prov_row.setSpacing(4)
 
@@ -1296,12 +1326,12 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda: self._switch_provider(provider))
             return btn
 
-        self._gemini_btn = _prov_btn("GEMINI (GEM)", "gemini")
         self._ollama_btn = _prov_btn("OLLAMA (OLL)", "ollama")
         self._or_btn = _prov_btn("OPENROUTER (OR)", "openrouter")
         self._lm_btn = _prov_btn("LM STUDIO (LM)", "lmstudio")
+        self._gemini_btn = QPushButton(); self._gemini_btn.hide() # Dummy for _highlight_provider
 
-        for btn in [self._gemini_btn, self._ollama_btn, self._or_btn, self._lm_btn]:
+        for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background: #000d12; color: {C.TEXT_DIM};
@@ -1313,7 +1343,7 @@ class MainWindow(QMainWindow):
         chat_col.addLayout(prov_row)
 
         model_row = QHBoxLayout(); model_row.setSpacing(8)
-        self._provider_lbl = QLabel("◈  GEMINI")
+        self._provider_lbl = QLabel("◈  OLLAMA")
         self._provider_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         self._provider_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent;")
         model_row.addWidget(self._provider_lbl)
@@ -1326,8 +1356,10 @@ class MainWindow(QMainWindow):
         model_row.addWidget(self._right_model_combo, stretch=1)
         chat_col.addLayout(model_row)
 
-        self._refresh_right_model_combo(cfg.get("selected_provider", "gemini"))
-        self._highlight_provider(cfg.get("selected_provider", "gemini"))
+        saved_prov = cfg.get("selected_provider", "ollama")
+        if saved_prov == "gemini": saved_prov = "ollama" # Since Gemini is removed
+        self._refresh_right_model_combo(saved_prov)
+        self._highlight_provider(saved_prov)
 
         sep_chat3 = QFrame(); sep_chat3.setFrameShape(QFrame.Shape.HLine)
         sep_chat3.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
@@ -1360,6 +1392,54 @@ class MainWindow(QMainWindow):
 
     def _build_input_row(self) -> QHBoxLayout:
         row = QHBoxLayout(); row.setSpacing(5)
+
+        # The "+" Tools button
+        self._tools_btn = QPushButton("+")
+        self._tools_btn.setFixedSize(34, 34)
+        self._tools_btn.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self._tools_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._tools_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C.PANEL}; color: {C.GREEN};
+                border: 1px solid {C.GREEN}; border-radius: 3px;
+            }}
+            QPushButton:hover {{ background: {C.GREEN}22; border: 1px solid #00ffaa; }}
+            QPushButton::menu-indicator {{ image: none; }}
+        """)
+        # Tools menu
+        self._tools_menu = QMenu(self)
+        self._tools_menu.setStyleSheet(f"""
+            QMenu {{
+                background-color: {C.DARK};
+                color: {C.TEXT};
+                border: 1px solid {C.BORDER_B};
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 6px 24px 6px 12px;
+                background: transparent;
+                font: bold 10pt "Segoe UI";
+            }}
+            QMenu::item:selected {{
+                background-color: {C.PRI_GHO};
+                color: {C.PRI};
+            }}
+        """)
+        
+        for action_name, cmd in [
+            ("🖼 Crear imagen", "/imagen "),
+            ("🎵 Crear audio", "/audio "),
+            ("🎬 Crear video", "/video "),
+            ("🤖 Agentes", "/agentes "),
+            ("📁 Sesiones", "/sesiones ")
+        ]:
+            act = QAction(action_name, self)
+            act.triggered.connect(lambda checked, c=cmd: self._insert_tool_cmd(c))
+            self._tools_menu.addAction(act)
+            
+        self._tools_btn.setMenu(self._tools_menu)
+        row.addWidget(self._tools_btn)
+
         self._input = QLineEdit()
         self._input.setPlaceholderText("Type a command or question…")
         self._input.setFont(QFont("Segoe UI", 12))
@@ -1388,6 +1468,47 @@ class MainWindow(QMainWindow):
         send.clicked.connect(self._send)
         row.addWidget(send)
         return row
+
+    def _insert_tool_cmd(self, cmd_prefix: str):
+        self._input.setText(cmd_prefix)
+        self._input.setFocus()
+        
+    def _set_audio_engine(self, mode: str):
+        if mode == "gemini":
+            save_config({"stt_engine": "gemini", "tts_engine": "gemini"})
+            self._log.append_log("SYS: Motores de audio configurados a Gemini Cloud.")
+        else:
+            save_config({"stt_engine": "whisper", "tts_engine": "piper"})
+            self._log.append_log("SYS: Motores de audio configurados a Whisper / Piper local.")
+        
+        self._update_audio_toggles()
+        
+        if hasattr(self, '_on_provider_changed') and self._on_provider_changed:
+            cfg = load_config()
+            provider = cfg.get("selected_provider", "ollama")
+            self._on_provider_changed(provider)
+
+    def _update_audio_toggles(self):
+        if not hasattr(self, "_audio_gemini_btn"): return
+        cfg = load_config()
+        stt = cfg.get("stt_engine", "gemini")
+        
+        if stt == "gemini":
+            self._audio_gemini_btn.setStyleSheet(f"""
+                QPushButton {{ background: {C.PRI}; color: #001a22; border: none; border-radius: 4px; }}
+            """)
+            self._audio_local_btn.setStyleSheet(f"""
+                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 4px; }}
+                QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
+            """)
+        else:
+            self._audio_local_btn.setStyleSheet(f"""
+                QPushButton {{ background: {C.GREEN}; color: #001a0d; border: none; border-radius: 4px; }}
+            """)
+            self._audio_gemini_btn.setStyleSheet(f"""
+                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 4px; }}
+                QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
+            """)
 
     def _build_footer(self) -> QWidget:
         w = QWidget()

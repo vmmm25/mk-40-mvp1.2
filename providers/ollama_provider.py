@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import random
 import logging
-from typing import Any, AsyncGenerator, Callable
+import random
+from typing import Any, AsyncGenerator
 
 import aiohttp
 
-from .base import BaseProvider, Message, ProviderConfig, ToolCall, ToolResult
+from .base import BaseProvider, Message, ProviderConfig
 from . import register_provider
 
 log = logging.getLogger(__name__)
@@ -37,10 +37,22 @@ class OllamaProvider(BaseProvider):
         self.model = config.model or DEFAULT_OLLAMA_MODEL
         self._session: aiohttp.ClientSession | None = None
 
+    # ------------------------------------------------------------------
+    # Session management
+    # ------------------------------------------------------------------
+
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session
+
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+
+    # ------------------------------------------------------------------
+    # Message format conversion
+    # ------------------------------------------------------------------
 
     def _message_to_ollama(self, msg: Message) -> dict:
         """Convert our Message to Ollama chat format."""
@@ -103,6 +115,62 @@ class OllamaProvider(BaseProvider):
             tool_calls=tool_calls,
         )
 
+    # ------------------------------------------------------------------
+    # Shared helpers — DRY refactor target
+    # ------------------------------------------------------------------
+
+    def _build_payload(
+        self,
+        messages: list[Message],
+        stream: bool = False,
+    ) -> dict:
+        """Build the Ollama /api/chat request payload."""
+        ollama_messages = [self._message_to_ollama(m) for m in messages]
+
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": ollama_messages,
+            "stream": stream,
+            "options": {
+                "temperature": self.config.temperature,
+                "num_predict": self.config.max_tokens,
+            },
+        }
+
+        # Add optional sampling parameters
+        for key in ("top_p", "repeat_penalty", "frequency_penalty", "presence_penalty"):
+            value = getattr(self.config, key, None)
+            if value is not None:
+                payload["options"][key] = value
+
+        return payload
+
+    def _get_timeout(self) -> aiohttp.ClientTimeout:
+        """Return a ClientTimeout based on config (default 120 s)."""
+        return aiohttp.ClientTimeout(
+            total=getattr(self.config, "timeout_seconds", 120)
+        )
+
+    def _get_max_attempts(self) -> int:
+        return getattr(self.config, "max_retries", 3) or 3
+
+    def _error_message(self, status: int, text: str) -> Message:
+        return Message(
+            role="assistant",
+            content=f"Ollama error ({status}): {text[:200]}",
+        )
+
+    def _connection_error_message(self) -> Message:
+        return Message(
+            role="assistant",
+            content=f"⚠️ No se puede conectar a Ollama en {self.base_url}. "
+                    f"¿Está Ollama corriendo? Inicia Ollama e intenta de nuevo.",
+        )
+
+    # ------------------------------------------------------------------
+    # Non-streaming chat
+    # ------------------------------------------------------------------
+
     async def chat(
         self,
         messages: list[Message],
@@ -111,68 +179,24 @@ class OllamaProvider(BaseProvider):
         """Send a chat to Ollama and get response."""
         try:
             session = await self._get_session()
-            ollama_messages = [self._message_to_ollama(m) for m in messages]
+            payload = self._build_payload(messages, stream=False)
 
-            payload = {
-                "model": self.model,
-                "messages": ollama_messages,
-                "stream": False,
-                "options": {
-                    "temperature": self.config.temperature,
-                    "num_predict": self.config.max_tokens,
-                },
-            }
-
-            # Add optional sampling parameters if they exist in the config
-            optional_keys = ["top_p", "repeat_penalty"]
-            for key in optional_keys:
-                value = getattr(self.config, key, None)
-                if value is not None:
-                    payload["options"][key] = value
-
-            # Configurable timeout (default 120 s)
-            timeout_seconds = getattr(self.config, "timeout_seconds", 120)
-            client_timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-
-            # Retry loop with exponential back‑off
-            max_attempts = getattr(self.config, "max_retries", 3) or 3
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    async with session.post(
-                        f"{self.base_url}/api/chat",
-                        json=payload,
-                        timeout=client_timeout,
-                    ) as resp:
-                        if resp.status != 200:
-                            error_text = await resp.text()
-                            return Message(
-                                role="assistant",
-                                content=f"Ollama error ({resp.status}): {error_text[:200]}",
-                            )
-                        data = await resp.json()
-                        return self._ollama_response_to_message(data)
-
-                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                    if attempt == max_attempts:
-                        raise
-                    backoff = (2 ** attempt) + random.random()
-                    log.warning(
-                        f"Chat request failed (attempt {attempt}/{max_attempts}): {e}. "
-                        f"Retrying in {backoff:.2f}s..."
-                    )
-                    await asyncio.sleep(backoff)
+            response = await self._request_with_retry(session, payload)
+            if isinstance(response, Message):
+                return response  # already an error message
+            return self._ollama_response_to_message(response)
 
         except aiohttp.ClientConnectorError:
-            return Message(
-                role="assistant",
-                content=f"⚠️ No se puede conectar a Ollama en {self.base_url}. "
-                        f"¿Está Ollama corriendo? Inicia Ollama e intenta de nuevo."
-            )
+            return self._connection_error_message()
         except Exception as e:
             return Message(
                 role="assistant",
-                content=f"Error con Ollama: {str(e)}"
+                content=f"Error con Ollama: {str(e)}",
             )
+
+    # ------------------------------------------------------------------
+    # Streaming chat
+    # ------------------------------------------------------------------
 
     async def stream_chat(
         self,
@@ -182,112 +206,123 @@ class OllamaProvider(BaseProvider):
         """Stream Ollama response tokens."""
         try:
             session = await self._get_session()
-            ollama_messages = [self._message_to_ollama(m) for m in messages]
+            payload = self._build_payload(messages, stream=True)
 
-            payload = {
-                "model": self.model,
-                "messages": ollama_messages,
-                "stream": True,
-                "options": {
-                    "temperature": self.config.temperature,
-                    "num_predict": self.config.max_tokens,
-                },
-            }
-
-            # Add optional sampling parameters if they exist in the config
-            optional_keys = ["top_p", "repeat_penalty"]
-            for key in optional_keys:
-                value = getattr(self.config, key, None)
-                if value is not None:
-                    payload["options"][key] = value
-
-            timeout_seconds = getattr(self.config, "timeout_seconds", 120)
-            client_timeout = aiohttp.ClientTimeout(total=timeout_seconds)
-
-            max_attempts = getattr(self.config, "max_retries", 3) or 3
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    async with session.post(
-                        f"{self.base_url}/api/chat",
-                        json=payload,
-                        timeout=client_timeout,
-                    ) as resp:
-                        if resp.status != 200:
-                            error_text = await resp.text()
-                            yield Message(
-                                role="assistant",
-                                content=f"Ollama error ({resp.status}): {error_text[:200]}"
-                            )
-                            return
-
-                        full_content = ""
-                        async for line in resp.content:
-                            if line:
-                                try:
-                                    chunk = json.loads(line)
-                                    if "message" in chunk:
-                                        content = chunk["message"].get("content", "")
-                                        if content:
-                                            full_content += content
-                                            yield Message(role="assistant", content=content)
-
-                                    if chunk.get("done"):
-                                        # Token usage could be forwarded to UI via the Message
-                                        # For now we just break the stream.
-                                        break
-                                except json.JSONDecodeError:
-                                    continue
-                        break
-
-                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                    if attempt == max_attempts:
-                        yield Message(
-                            role="assistant",
-                            content=f"⚠️ No se puede conectar a Ollama en {self.base_url}."
-                        )
-                        return
-                    backoff = (2 ** attempt) + random.random()
-                    log.warning(
-                        f"Stream request failed (attempt {attempt}/{max_attempts}): {e}. "
-                        f"Retrying in {backoff:.2f}s..."
-                    )
-                    await asyncio.sleep(backoff)
+            async for chunk_msg in self._stream_with_retry(session, payload):
+                yield chunk_msg
 
         except aiohttp.ClientConnectorError:
-            yield Message(
-                role="assistant",
-                content=f"⚠️ No se puede conectar a Ollama en {self.base_url}."
-            )
+            yield self._connection_error_message()
         except Exception as e:
             yield Message(
                 role="assistant",
-                content=f"Error con Ollama: {str(e)}"
+                content=f"Error con Ollama: {str(e)}",
             )
 
-    async def pull_model(self, model_name: str) -> bool:
-        """Pull a model from Ollama."""
-        try:
-            session = await self._get_session()
-            async with session.post(
-                f"{self.base_url}/api/pull",
-                json={"name": model_name},
-                timeout=aiohttp.ClientTimeout(total=300),
-            ) as resp:
-                return resp.status == 200
-        except Exception:
-            return False
+    # ------------------------------------------------------------------
+    # Retry logic for non-streaming requests
+    # ------------------------------------------------------------------
 
-    async def check_server(self) -> bool:
-        """Check if Ollama server is running."""
-        try:
-            session = await self._get_session()
-            async with session.get(
-                f"{self.base_url}/api/tags",
-                timeout=aiohttp.ClientTimeout(total=5),
-            ) as resp:
-                return resp.status == 200
-        except Exception:
-            return False
+    async def _request_with_retry(
+        self,
+        session: aiohttp.ClientSession,
+        payload: dict,
+    ) -> dict | Message:
+        """POST to /api/chat, retrying on transient errors.
+
+        Returns the parsed JSON dict on success, or a ``Message`` on failure.
+        """
+        max_attempts = self._get_max_attempts()
+        timeout = self._get_timeout()
+        url = f"{self.base_url}/api/chat"
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                async with session.post(
+                    url, json=payload, timeout=timeout,
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        return self._error_message(resp.status, error_text)
+                    return await resp.json()
+
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                if attempt == max_attempts:
+                    raise
+                backoff = (2**attempt) + random.random()
+                log.warning(
+                    "Chat request failed (attempt %d/%d): %s. "
+                    "Retrying in %.2fs...",
+                    attempt, max_attempts, e, backoff,
+                )
+                await asyncio.sleep(backoff)
+
+        # Should not be reached
+        return self._error_message(0, "Max retries exceeded")
+
+    # ------------------------------------------------------------------
+    # Retry logic for streaming requests
+    # ------------------------------------------------------------------
+
+    async def _stream_with_retry(
+        self,
+        session: aiohttp.ClientSession,
+        payload: dict,
+    ) -> AsyncGenerator[Message, None]:
+        """Stream from /api/chat, retrying on transient errors."""
+        max_attempts = self._get_max_attempts()
+        timeout = self._get_timeout()
+        url = f"{self.base_url}/api/chat"
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                async with session.post(
+                    url, json=payload, timeout=timeout,
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        yield self._error_message(resp.status, error_text)
+                        return
+
+                    full_content = ""
+                    async for line_bytes in resp.content:
+                        if not line_bytes:
+                            continue
+                        try:
+                            line = line_bytes.decode("utf-8").strip()
+                            if not line:
+                                continue
+                            chunk = json.loads(line)
+                            if "message" in chunk:
+                                content = chunk["message"].get("content", "")
+                                if content:
+                                    full_content += content
+                                    yield Message(role="assistant", content=content)
+
+                            if chunk.get("done"):
+                                return
+                        except json.JSONDecodeError:
+                            continue
+                    return  # success, exit retry loop
+
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                if attempt == max_attempts:
+                    yield Message(
+                        role="assistant",
+                        content=f"⚠️ No se puede conectar a Ollama en {self.base_url}.",
+                    )
+                    return
+                backoff = (2**attempt) + random.random()
+                log.warning(
+                    "Stream request failed (attempt %d/%d): %s. "
+                    "Retrying in %.2fs...",
+                    attempt, max_attempts, e, backoff,
+                )
+                await asyncio.sleep(backoff)
+
+    # ------------------------------------------------------------------
+    # Model listing
+    # ------------------------------------------------------------------
 
     def get_models(self) -> list[dict]:
         """Get available models from local Ollama instance."""
@@ -316,7 +351,7 @@ class OllamaProvider(BaseProvider):
                     models = data.get("models", [])
                     return [{"id": m["name"], "name": m["name"]} for m in models]
         except Exception:
-            pass
+            log.warning("Could not fetch models from Ollama, using fallback list")
         return self.get_models()
 
     async def pull_model(self, model_name: str) -> bool:
@@ -329,7 +364,8 @@ class OllamaProvider(BaseProvider):
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as resp:
                 return resp.status == 200
-        except Exception:
+        except Exception as e:
+            log.error("Failed to pull model %s: %s", model_name, e)
             return False
 
     async def check_server(self) -> bool:
@@ -343,10 +379,6 @@ class OllamaProvider(BaseProvider):
                 return resp.status == 200
         except Exception:
             return False
-
-    async def close(self):
-        if self._session and not self._session.closed:
-            await self._session.close()
 
 
 register_provider("ollama", OllamaProvider)

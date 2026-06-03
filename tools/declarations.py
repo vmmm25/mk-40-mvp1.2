@@ -1,6 +1,54 @@
 # ── Tool declarations (reusable across all providers) ───────────────
 TOOL_DECLARATIONS = [
     {
+        "name": "email_read",
+        "description": "Reads emails from the user's Gmail account.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "max_results": {"type": "INTEGER", "description": "Maximum number of emails to read (default: 5)"},
+                "query": {"type": "STRING", "description": "Search query for filtering emails (e.g. 'is:unread', 'from:boss@company.com')"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "email_send",
+        "description": "Sends an email using the user's Gmail account.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "to": {"type": "STRING", "description": "Recipient email address"},
+                "subject": {"type": "STRING", "description": "Subject of the email"},
+                "body": {"type": "STRING", "description": "Body content of the email"}
+            },
+            "required": ["to", "subject", "body"]
+        }
+    },
+    {
+        "name": "search_documents",
+        "description": "Searches the personal document database (RAG) for information. Use this when the user asks about their own documents, files, or previously indexed information.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "query": {"type": "STRING", "description": "The search query"},
+                "n_results": {"type": "INTEGER", "description": "Number of results to return (default: 5)"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "index_document",
+        "description": "Indexes a document or directory into the personal RAG database for future semantic search.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "path": {"type": "STRING", "description": "Absolute path to the file or directory to index"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
         "name": "open_app",
         "description": (
             "Opens any application on the computer. "
@@ -299,6 +347,117 @@ TOOL_DECLARATIONS = [
         }
     },
     {
+        "name": "smart_home",
+        "description": "Control smart home devices via Home Assistant API. Use for lights, thermostats, switches, and scenes.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "list_devices | turn_on | turn_off | set_temperature | get_status | scene"},
+                "device": {"type": "STRING", "description": "Device name or entity ID"},
+                "value": {"type": "STRING", "description": "Value for set_temperature (e.g. '22')"},
+                "scene": {"type": "STRING", "description": "Scene name for scene action"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "git_operation",
+        "description": "Perform Git operations: status, commit, push, pull, branch, log, diff, clone, add, checkout, merge.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "status | commit | push | pull | branch | log | diff | clone | add | checkout | merge"},
+                "path": {"type": "STRING", "description": "Repository path (default: current project)"},
+                "message": {"type": "STRING", "description": "Commit message"},
+                "branch": {"type": "STRING", "description": "Branch name"},
+                "url": {"type": "STRING", "description": "Repository URL for clone"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "docker_control",
+        "description": "Control Docker containers: list, start, stop, logs, compose.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "list | start | stop | restart | logs | compose_up | compose_down | stats"},
+                "container": {"type": "STRING", "description": "Container name or ID"},
+                "compose_file": {"type": "STRING", "description": "Path to docker-compose.yml"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "database_query",
+        "description": "Execute SQL queries on configured databases (PostgreSQL or MySQL).",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "connection": {"type": "STRING", "description": "Connection name from config (e.g. 'local_postgres', 'project_db')"},
+                "query": {"type": "STRING", "description": "SQL query to execute"}
+            },
+            "required": ["connection", "query"]
+        }
+    },
+    {
+        "name": "play_music",
+        "description": "Control Spotify music playback: play, pause, next, previous, search, playlist, volume, and info.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "play | pause | next | previous | search | playlist | volume | info"},
+                "query": {"type": "STRING", "description": "Song/artist/playlist name for search/play action"},
+                "volume": {"type": "INTEGER", "description": "Volume level 0-100 for volume action"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "generate_image",
+        "description": "Generate an image from a text description using AI. Supports local SD, Gemini, or DALL-E via OpenRouter.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "prompt": {"type": "STRING", "description": "Detailed description of the image to generate"},
+                "style": {"type": "STRING", "description": "Art style: realistic | anime | cyberpunk | oil_painting | watercolor | pixel_art"},
+                "size": {"type": "STRING", "description": "Image size: 512x512 | 1024x1024 | 1024x768 (default: 1024x1024)"},
+                "save": {"type": "BOOLEAN", "description": "Save to desktop (default: true)"},
+                "count": {"type": "INTEGER", "description": "Number of images (default: 1, max: 4)"},
+                "backend": {"type": "STRING", "description": "Generation backend: local | gemini | openai (default: auto — tries local first)"}
+            },
+            "required": ["prompt"]
+        }
+    },
+    {
+        "name": "calendar_list_events",
+        "description": "List upcoming events from your Google Calendar.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "max_results": {"type": "INTEGER", "description": "Max events to return (default: 10)"},
+                "days_ahead": {"type": "INTEGER", "description": "How many days ahead to look (default: 7)"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "calendar_create_event",
+        "description": "Create a new event in your Google Calendar.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "summary": {"type": "STRING", "description": "Event title"},
+                "description": {"type": "STRING", "description": "Event description"},
+                "date": {"type": "STRING", "description": "Date YYYY-MM-DD"},
+                "time": {"type": "STRING", "description": "Time HH:MM (24h format, default: 12:00)"},
+                "duration_minutes": {"type": "INTEGER", "description": "Duration in minutes (default: 60)"},
+                "attendees": {"type": "ARRAY", "items": {"type": "STRING"}, "description": "Email addresses of attendees"}
+            },
+            "required": ["summary", "date"]
+        }
+    },
+    {
         "name": "shutdown_jarvis",
         "description": (
             "Shuts down the assistant completely. "
@@ -426,4 +585,27 @@ TOOL_DECLARATIONS = [
             "required": ["prompt"]
         }
     },
+    {
+        "name": "terminal_control",
+        "description": (
+            "Executes a command in the system terminal (PowerShell on Windows, Bash on Linux/Mac). "
+            "Use this to launch applications via command line, start services like Ollama, "
+            "run Python scripts, manage environments, or execute any system command requested by the user."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "command": {
+                    "type": "STRING",
+                    "description": "The terminal command to execute"
+                },
+                "timeout": {
+                    "type": "INTEGER",
+                    "description": "Timeout in seconds (default: 60)"
+                }
+            },
+            "required": ["command"]
+        }
+    },
 ]
+

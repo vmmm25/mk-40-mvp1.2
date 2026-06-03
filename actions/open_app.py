@@ -228,9 +228,35 @@ def open_app(
     session_memory=None,
 ) -> str:
     app_name = (parameters or {}).get("app_name", "").strip()
+    
+    # Security: Prevent Prompt Injection (Shell injection)
+    import re
+    app_name = re.sub(r'[&|;<>^]', '', app_name)
 
     if not app_name:
         return "No application name provided."
+
+    # Require password verification
+    import json, sys
+    from pathlib import Path
+    
+    def _get_base_dir() -> Path:
+        if getattr(sys, "frozen", False):
+            return Path(sys.executable).parent
+        return Path(__file__).resolve().parent.parent
+
+    config_path = _get_base_dir() / "config" / "config.json"
+    admin_pwd = ""
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            admin_pwd = json.load(f).get("admin_password", "")
+    except Exception:
+        pass
+
+    if admin_pwd:
+        provided_pwd = str((parameters or {}).get("password", "")).strip()
+        if provided_pwd != admin_pwd:
+            return f"Acceso Denegado. Abrir '{app_name}' requiere verificación. Pídele al usuario que dicte la contraseña maestra de seguridad para continuar."
 
     launcher = _OS_LAUNCHERS.get(_SYSTEM)
     if launcher is None:

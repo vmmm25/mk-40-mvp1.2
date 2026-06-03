@@ -5,12 +5,17 @@ Manages api_keys.json which now supports multiple AI providers:
 - Ollama (local models)
 - OpenRouter (cloud models)
 - LM Studio (local OpenAI-compatible server)
+
+API keys are encrypted at rest using :mod:`core.crypto`.
 """
 
 import json
+import logging
 import sys
 import time
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 
 def get_base_dir() -> Path:
@@ -106,7 +111,7 @@ def load_config() -> dict:
         _cache_time = current_time
         return merged
     except Exception as e:
-        print(f"❌ Failed to load config: {e}")
+        log.error("Failed to load config: %s", e)
         _config_cache = dict(DEFAULT_CONFIG)
         _cache_time = current_time
         return dict(DEFAULT_CONFIG)

@@ -227,6 +227,48 @@ def _fetch_api_loaded_models() -> list[dict]:
     return []
 
 
+def load_model(model_id: str) -> tuple[bool, str]:
+    """Load a model into LM Studio via the REST API."""
+    base_url = get_lmstudio_url()
+    try:
+        resp = requests.post(
+            f"{base_url}/api/v1/models/load",
+            json={"model": model_id},
+            timeout=60, # Loading might take time
+        )
+        if resp.status_code == 200:
+            return True, f"Modelo '{model_id}' cargado correctamente."
+        else:
+            return False, f"Error HTTP {resp.status_code}: {resp.text}"
+    except requests.ConnectionError:
+        return False, "Error: LM Studio no está ejecutándose o no es accesible."
+    except requests.Timeout:
+        return False, "Error: Tiempo de espera agotado al cargar el modelo."
+    except Exception as e:
+        return False, f"Error inesperado: {str(e)}"
+
+
+def unload_model(model_id: str) -> tuple[bool, str]:
+    """Unload a model from LM Studio via the REST API."""
+    base_url = get_lmstudio_url()
+    try:
+        resp = requests.post(
+            f"{base_url}/api/v1/models/unload",
+            json={"model": model_id},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            return True, f"Modelo '{model_id}' descargado de memoria."
+        else:
+            return False, f"Error HTTP {resp.status_code}: {resp.text}"
+    except requests.ConnectionError:
+        return False, "Error: LM Studio no está ejecutándose o no es accesible."
+    except requests.Timeout:
+        return False, "Error: Tiempo de espera agotado."
+    except Exception as e:
+        return False, f"Error inesperado: {str(e)}"
+
+
 # ── Application lifecycle ──────────────────────────────────────────────
 
 def launch_lmstudio() -> bool:

@@ -219,7 +219,18 @@ class BaseProvider(ABC):
         """
         history = list(messages)
         for _ in range(max_turns):
-            response = await self.chat(history, tools)
+            import hashlib
+            from core.cache import response_cache
+            
+            key_data = json.dumps([m.__dict__ for m in history] + (tools or []), sort_keys=True)
+            cache_key = hashlib.md5(key_data.encode()).hexdigest()
+            
+            cached_resp = response_cache.get(cache_key)
+            if cached_resp:
+                response = Message(**json.loads(cached_resp))
+            else:
+                response = await self.chat(history, tools)
+                response_cache.set(cache_key, json.dumps(response.__dict__))
 
             if not response.tool_calls:
                 return response

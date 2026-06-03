@@ -36,6 +36,7 @@ from memory.config_manager import (
 )
 
 from providers import create_provider, ProviderConfig, Message, list_providers
+from core.logging_config import setup_logging
 from providers.base import ToolCall, ToolResult
 
 # ── Force UTF-8 console on Windows (prevents cp1252 emoji crashes) ──
@@ -237,6 +238,12 @@ def _play_wav_file(wav_data: str | bytes, volume: float = 1.0, device: int | Non
                         data = scale.tobytes()
                     stream.write(data)
                     data = wf.readframes(chunk_size)
+                
+                # Padding de silencio al final para prevenir pops / clics residuales en la tarjeta de sonido
+                if dtype == 'int16':
+                    stream.write(b'\x00' * (channels * 2 * int(samplerate * 0.15)))
+                elif dtype == 'float32':
+                    stream.write(b'\x00' * (channels * 4 * int(samplerate * 0.15)))
     except Exception as e:
         print(f"[JARVIS] ❌ Play WAV error: {e}")
 
@@ -281,6 +288,14 @@ def _clean_whisper_transcript(text: str) -> str:
         "¡gracias!",
         "thanks for watching",
         "gracias.",
+        "gracias",
+        "amén",
+        "amén.",
+        "silencio",
+        "música",
+        "suscríbete al canal",
+        "dale a like",
+        "suscríbete",
     ]
     test_clean = text.lower().strip(" .,!¡?¿")
     if test_clean in hallucinations or not test_clean:
@@ -473,7 +488,7 @@ async def _synthesize_speech_in_memory(text: str, cfg: dict) -> bytes | None:
         def run_gemini():
             try:
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash-exp",
+                    model="gemini-2.0-flash",
                     contents=[f"Lee en voz alta de manera clara, natural y con buena entonación el siguiente texto: {text}"],
                     config=types.GenerateContentConfig(
                         response_modalities=["AUDIO"],
@@ -792,7 +807,9 @@ class JarvisLive:
     async def run(self):
         while not _engine_stop.is_set():
             try:
-                print("[JARVIS] 🔌 Connecting to Gemini Live...")
+                print("-" * 50)
+                print(f"[JARVIS] 🔌 Connecting to Gemini Live with model: {LIVE_MODEL}...")
+                print("-" * 50)
                 self.ui.set_state("THINKING")
 
                 # Use async with to properly enter both the live session
@@ -808,6 +825,7 @@ class JarvisLive:
                             self._turn_done_event = asyncio.Event()
 
                             print("[JARVIS] [OK] Connected to Gemini Live.")
+                            print("[JARVIS] ▶️ React started")
                             self.ui.set_state("LISTENING")
                             self.ui.write_log("SYS: JARVIS online (Gemini Live Audio).")
 
@@ -1158,14 +1176,21 @@ class JarvisChat:
 
     async def run(self):
         self._loop = asyncio.get_event_loop()
-        prov_name = self.provider.__class__.__name__
-        print(f"[JARVIS] [OK] {prov_name} ready.")
+        prov_name = {"GeminiProvider": "Gemini", "OllamaProvider": "Ollama", "OpenRouterProvider": "OpenRouter", "LMStudioProvider": "LM Studio"}.get(self.provider.__class__.__name__, self.provider.__class__.__name__)
+        model_name = getattr(self.provider.config, 'model', 'default')
+        
+        print("-" * 50)
+        print(f"[JARVIS] [OK] {prov_name} provider started and server ready with model: {model_name}")
+        print("-" * 50)
+        
         self.ui.set_state("LISTENING")
         
         if self.voice_enabled:
+            print(f"[JARVIS] 🎤 Listen started ({prov_name} Voice Wrapper)")
             self.ui.write_log(f"SYS: JARVIS online ({prov_name} - Modo de Voz). Habla para comunicarte.")
             asyncio.create_task(self._voice_loop())
         else:
+            print(f"[JARVIS] 💬 Text mode started ({prov_name})")
             self.ui.write_log(f"SYS: JARVIS online ({prov_name}). Escribe un mensaje para comenzar.")
 
         while not _engine_stop.is_set():
@@ -1210,7 +1235,17 @@ def _create_engine(ui: JarvisUI):
 
     provider = create_provider(selected, pconfig)
     prov_name = {"gemini": "Gemini", "ollama": "Ollama", "openrouter": "OpenRouter", "lmstudio": "LM Studio"}.get(selected, selected)
-    ui.write_log(f"SYS: Starting with provider: {prov_name}")
+    
+    print("\n" + "=" * 50)
+    print(f"[JARVIS] 🚀 Initializing Engine: {prov_name}")
+    print(f"[JARVIS] 📦 Model Configuration: {pconfig.model}")
+    if selected == "gemini" and provider.supports_live_audio:
+        print("[JARVIS] 🎙️ Mode: Live Audio (Real-time streaming)")
+    else:
+        print("[JARVIS] 💬 Mode: Text Chat (with optional Voice Wrapper)")
+    print("=" * 50 + "\n")
+    
+    ui.write_log(f"SYS: Starting with provider: {prov_name} (Model: {pconfig.model})")
 
     # If Gemini and it supports live audio, use audio mode
     # Otherwise use chat mode
@@ -1224,8 +1259,12 @@ def _switch_provider(provider_name: str, ui: JarvisUI):
     """Switch provider at runtime — signals engine to stop and restart."""
     save_config({"selected_provider": provider_name})
     prov_name = {"gemini": "Gemini", "ollama": "Ollama", "openrouter": "OpenRouter", "lmstudio": "LM Studio"}.get(provider_name, provider_name)
+    
+    print("\n" + "*" * 50)
+    print(f"[JARVIS] 🔄 Provider switch requested: {prov_name}")
+    print("*" * 50 + "\n")
+    
     ui.write_log(f"SYS: Switching to {prov_name} provider...")
-    print(f"[JARVIS] Provider switch requested: {provider_name}")
     _engine_restart.set()
     _engine_stop.set()
 
@@ -1284,4 +1323,5 @@ def main():
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()

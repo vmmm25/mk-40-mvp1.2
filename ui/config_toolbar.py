@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 import platform
@@ -23,6 +23,7 @@ from lmstudio_control import (
     find_lmstudio_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
     is_server_running, get_server_status,
+    load_model, unload_model,
 )
 
 
@@ -33,32 +34,46 @@ _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 # Single source of truth used by BOTH the config tab and the right-panel combo.
 # Tuple layout: (model_id, display_name)
 _OR_FREE_MODELS: list[tuple[str, str]] = [
-    ("nvidia/nemotron-3-super-120b-a12b:free",               "Nvidia Nemotron 3 Super 120B"),
-    ("nvidia/nemotron-3-nano-30b-a3b:free",                  "Nvidia Nemotron 3 Nano 30B"),
-    ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",   "Nvidia Nemotron 3 Nano Omni"),
-    ("nvidia/nemotron-nano-12b-v2-vl:free",                  "Nvidia Nemotron Nano 12B VL"),
-    ("nvidia/nemotron-nano-9b-v2:free",                      "Nvidia Nemotron Nano 9B"),
-    ("google/gemma-4-31b-it:free",                           "Google Gemma 4 31B"),
-    ("google/gemma-4-26b-a4b-it:free",                       "Google Gemma 4 26B A4B"),
-    ("openai/gpt-oss-120b:free",                             "GPT-OSS 120B"),
-    ("openai/gpt-oss-20b:free",                              "GPT-OSS 20B"),
-    ("deepseek/deepseek-v4-flash:free",                      "DeepSeek V4 Flash"),
-    ("deepseek/deepseek-r1:free",                            "DeepSeek R1"),
-    ("meta-llama/llama-3.3-70b-instruct:free",               "Llama 3.3 70B"),
-    ("meta-llama/llama-3.2-3b-instruct:free",                "Llama 3.2 3B"),
-    ("qwen/qwen3-coder:free",                                "Qwen 3 Coder"),
-    ("qwen/qwen3-next-80b-a3b-instruct:free",                "Qwen 3 Next 80B"),
-    ("mistralai/mistral-small-3.1-24b-instruct:free",        "Mistral Small 3.1 24B"),
-    ("mistralai/mistral-7b-instruct:free",                   "Mistral 7B"),
-    ("liquid/lfm-2.5-1.2b-instruct:free",                   "Liquid LFM 2.5 1.2B"),
-    ("liquid/lfm-2.5-1.2b-thinking:free",                   "Liquid LFM 2.5 1.2B Think"),
-    ("minimax/minimax-m2.5:free",                            "MiniMax M2.5"),
-    ("moonshotai/kimi-k2.6:free",                            "Moonshot Kimi K2.6"),
-    ("nousresearch/hermes-3-llama-3.1-405b:free",            "Nous Hermes 3 405B"),
-    ("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Dolphin Mistral 24B"),
-    ("poolside/laguna-m.1:free",                             "Poolside Laguna M.1"),
-    ("poolside/laguna-xs.2:free",                            "Poolside Laguna XS.2"),
-    ("z-ai/glm-4.5-air:free",                               "GLM 4.5 Air"),
+    ("deepseek/deepseek-r1:free", "DeepSeek R1"),
+    ("deepseek/deepseek-r1-distill-llama-70b:free", "DeepSeek R1 Distill Llama 70B"),
+    ("google/gemini-2.0-pro-exp-02-05:free", "Google Gemini 2.0 Pro Exp"),
+    ("google/gemini-2.0-flash-thinking-exp:free", "Google Gemini 2.0 Flash Thinking Exp"),
+    ("google/gemini-2.0-flash-lite-preview-02-05:free", "Google Gemini 2.0 Flash Lite Preview"),
+    ("google/gemma-2-9b-it:free", "Google Gemma 2 9B"),
+    ("meta-llama/llama-3.3-70b-instruct:free", "Meta Llama 3.3 70B"),
+    ("meta-llama/llama-3.2-3b-instruct:free", "Meta Llama 3.2 3B"),
+    ("meta-llama/llama-3.1-8b-instruct:free", "Meta Llama 3.1 8B"),
+    ("nvidia/llama-3.1-nemotron-70b-instruct:free", "Nvidia Nemotron 70B"),
+    ("qwen/qwen-2.5-72b-instruct:free", "Qwen 2.5 72B"),
+    ("qwen/qwen-2.5-coder-32b-instruct:free", "Qwen 2.5 Coder 32B"),
+    ("mistralai/mistral-small-24b-instruct-2501:free", "Mistral Small 24B"),
+    ("mistralai/mistral-7b-instruct:free", "Mistral 7B"),
+    ("cognitivecomputations/dolphin3.0-r1-mistral-24b:free", "Dolphin 3.0 R1 Mistral 24B"),
+    ("nousresearch/hermes-3-llama-3.1-405b:free", "Nous Hermes 3 405B"),
+    ("openchat/openchat-7b:free", "OpenChat 7B"),
+    ("huggingfaceh4/zephyr-7b-beta:free", "Zephyr 7B Beta"),
+    ("openrouter/owl-alpha", "Owl Alpha"),
+    ("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "NVIDIA: Nemotron 3 Nano Omni"),
+    ("poolside/laguna-xs.2:free", "Poolside: Laguna XS.2"),
+    ("poolside/laguna-m.1:free", "Poolside: Laguna M.1"),
+    ("moonshotai/kimi-k2.6:free", "MoonshotAI: Kimi K2.6"),
+    ("google/gemma-4-26b-a4b-it:free", "Google: Gemma 4 26B A4B "),
+    ("google/gemma-4-31b-it:free", "Google: Gemma 4 31B"),
+    ("google/lyria-3-pro-preview", "Google: Lyria 3 Pro Preview"),
+    ("google/lyria-3-clip-preview", "Google: Lyria 3 Clip Preview"),
+    ("nvidia/nemotron-3-super-120b-a12b:free", "NVIDIA: Nemotron 3 Super"),
+    ("openrouter/free", "Free Models Router"),
+    ("liquid/lfm-2.5-1.2b-thinking:free", "LiquidAI: LFM2.5-1.2B-Thinking"),
+    ("liquid/lfm-2.5-1.2b-instruct:free", "LiquidAI: LFM2.5-1.2B-Instruct"),
+    ("nvidia/nemotron-3-nano-30b-a3b:free", "NVIDIA: Nemotron 3 Nano 30B A3B"),
+    ("nvidia/nemotron-nano-12b-v2-vl:free", "NVIDIA: Nemotron Nano 12B 2 VL"),
+    ("qwen/qwen3-next-80b-a3b-instruct:free", "Qwen: Qwen3 Next 80B A3B Instruct"),
+    ("nvidia/nemotron-nano-9b-v2:free", "NVIDIA: Nemotron Nano 9B V2"),
+    ("openai/gpt-oss-120b:free", "OpenAI: gpt-oss-120b"),
+    ("openai/gpt-oss-20b:free", "OpenAI: gpt-oss-20b"),
+    ("z-ai/glm-4.5-air:free", "Z.ai: GLM 4.5 Air"),
+    ("qwen/qwen3-coder:free", "Qwen: Qwen3 Coder 480B A35B"),
+    ("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Venice: Uncensored"),
 ]
 
 
@@ -330,6 +345,20 @@ class ConfigToolbar(QWidget):
         self._vol_slider.setValue(vol_val)
         self._vol_slider.valueChanged.connect(self._on_volume_changed)
         hw_lay.addWidget(self._vol_slider)
+        
+        hw_lay.addWidget(self._mk_sep())
+        hw_lay.addWidget(self._build_lbl("🔐 SEGURIDAD", 9, True, C.RED, align=Qt.AlignmentFlag.AlignCenter))
+        hw_lay.addWidget(self._build_lbl("Contraseña para acciones críticas (Apagar/Reiniciar)", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+        
+        self._master_pwd_input = QLineEdit()
+        self._master_pwd_input.setFont(QFont("Segoe UI", 10))
+        self._master_pwd_input.setFixedHeight(28)
+        self._master_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self._master_pwd_input.setText(cfg.get("admin_password", ""))
+        self._master_pwd_input.setStyleSheet(_INPUT_STYLE)
+        self._master_pwd_input.setPlaceholderText("Dejar vacío para desactivar")
+        hw_lay.addWidget(self._master_pwd_input)
+        
         hw_lay.addStretch()
         
         # 2. Gemini Tab
@@ -439,39 +468,41 @@ class ConfigToolbar(QWidget):
         enabled = self._voice_enabled_chk.isChecked()
         stt = self._stt_engine_combo.currentData()
         tts = self._tts_engine_combo.currentData()
-        gemini_k = self._gemini_voice_key_edit.text().strip()
+        gemini_k = getattr(self, "_gemini_key_input", None)
+        gemini_k = gemini_k.text().strip() if gemini_k else ""
         whisper_p = self._whisper_path_edit.text().strip()
         whisper_m = self._whisper_model_edit.text().strip()
         piper_p = self._piper_path_edit.text().strip()
         piper_m = self._piper_model_edit.text().strip()
+        admin_pwd = self._master_pwd_input.text().strip() if hasattr(self, '_master_pwd_input') else ""
 
-        save_config({
+        # Only update what we actually have in the audio tab + gemini key if present
+        updates = {
             "voice_wrapper_enabled": enabled,
             "stt_engine": stt,
             "tts_engine": tts,
-            "gemini_api_key": gemini_k,
             "whisper_path": whisper_p,
             "whisper_model": whisper_m,
             "piper_path": piper_p,
             "piper_model": piper_m,
-        })
-
-        if hasattr(self, "_gemini_key_input") and self._gemini_key_input.text() != gemini_k:
-            self._gemini_key_input.blockSignals(True)
-            self._gemini_key_input.setText(gemini_k)
-            self._gemini_key_input.blockSignals(False)
+            "admin_password": admin_pwd,
+        }
+        if gemini_k:
+            updates["gemini_api_key"] = gemini_k
+            
+        save_config(updates)
 
         self._update_voice_visibility()
 
     def _update_voice_visibility(self):
         """Update visibility of Gemini/Whisper/Piper configuration blocks based on whether voice wrapper is enabled."""
-        if not hasattr(self, "_voice_enabled_chk"):
+        if not hasattr(self, "_voice_enabled_chk") or not hasattr(self, "_voice_tabs"):
             return
         enabled = self._voice_enabled_chk.isChecked()
 
-        self._gemini_voice_container.setVisible(enabled)
-        self._whisper_container.setVisible(enabled)
-        self._piper_container.setVisible(enabled)
+        # Disable the specific tabs instead of hiding non-existent containers
+        for i in range(1, self._voice_tabs.count()):
+            self._voice_tabs.setTabEnabled(i, enabled)
 
     def _browse_whisper_path(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -533,11 +564,16 @@ class ConfigToolbar(QWidget):
         self._reload_btn.clicked.connect(self._refresh_model_list)
         combo_row.addWidget(self._reload_btn)
 
-        self._run_btn = self._build_btn("▶ RUN", C.GREEN, h=34, w=90)
+        self._run_btn = self._build_btn("▶ RUN", C.GREEN, h=34, w=80)
         self._run_btn.clicked.connect(self._save_ollama_model)
         combo_row.addWidget(self._run_btn)
         
-        self._pull_btn = self._build_btn("⬇ PULL", C.PRI, h=34, w=90)
+        self._eject_btn = self._build_btn("⏹ EJECT", C.RED, h=34, w=80)
+        self._eject_btn.clicked.connect(self._on_eject_ollama_model)
+        self._eject_btn.setToolTip("Descarga el modelo de la memoria RAM/VRAM")
+        combo_row.addWidget(self._eject_btn)
+        
+        self._pull_btn = self._build_btn("⬇ PULL", C.PRI, h=34, w=80)
         self._pull_btn.clicked.connect(self._on_pull_model)
         combo_row.addWidget(self._pull_btn)
         lay.addLayout(combo_row)
@@ -656,15 +692,27 @@ class ConfigToolbar(QWidget):
         
         model_action_row = QHBoxLayout()
         model_action_row.addStretch()
-        self._save_lm_model_btn = self._build_btn("GUARDAR MODELO", C.GREEN, h=30)
+        
+        self._lm_run_model_btn = self._build_btn("▶ RUN", C.GREEN, h=30)
+        self._lm_run_model_btn.clicked.connect(self._on_lm_run_model)
+        model_action_row.addWidget(self._lm_run_model_btn)
+        
+        self._lm_eject_model_btn = self._build_btn("⏹ EJECT", C.RED, h=30)
+        self._lm_eject_model_btn.clicked.connect(self._on_lm_eject_model)
+        self._lm_eject_model_btn.setToolTip("Descargar modelo de RAM/VRAM")
+        model_action_row.addWidget(self._lm_eject_model_btn)
+        
+        self._save_lm_model_btn = self._build_btn("GUARDAR", C.PRI, h=30)
         self._save_lm_model_btn.clicked.connect(self._save_lm_model)
+        model_action_row.addWidget(self._save_lm_model_btn)
+        
         self._lm_refresh_models_btn = self._build_btn("↻ SCAN", C.ACC, h=30)
+        self._lm_refresh_models_btn.clicked.connect(self._populate_lm_models)
+        model_action_row.addWidget(self._lm_refresh_models_btn)
+        
         self._lm_folder_btn = self._build_btn("📁 CARPETA", C.PRI, h=30)
         self._lm_folder_btn.clicked.connect(self._open_lm_models_folder)
         model_action_row.addWidget(self._lm_folder_btn)
-        self._lm_refresh_models_btn.clicked.connect(self._populate_lm_models)
-        model_action_row.addWidget(self._save_lm_model_btn)
-        model_action_row.addWidget(self._lm_refresh_models_btn)
         
         self._lm_model_status = self._build_lbl("", 8, color=C.TEXT_DIM)
         model_action_row.addWidget(self._lm_model_status)
@@ -762,7 +810,64 @@ class ConfigToolbar(QWidget):
             if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
-            self._lm_model_status.setText("ÔØî No se seleccion├│ modelo")
+            self._lm_model_status.setText("❌ No se seleccionó modelo")
+            self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+
+    def _on_lm_run_model(self):
+        """Load the selected model into LM Studio using the REST API."""
+        model_id = self._lm_model_combo.currentData()
+        if not model_id or model_id == "local-model":
+            self._lm_model_status.setText("❌ Seleccione un modelo válido")
+            return
+
+        self._lm_run_model_btn.setEnabled(False)
+        self._lm_model_status.setText(f"⏳ Cargando {model_id}...")
+        self._lm_model_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+
+        import threading
+        def worker():
+            success, msg = load_model(model_id)
+            # Use QTimer to safely update UI from the main thread
+            QTimer.singleShot(0, lambda: self._on_lm_run_finished(success, msg))
+            
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_lm_run_finished(self, success: bool, msg: str):
+        self._lm_run_model_btn.setEnabled(True)
+        if success:
+            self._lm_model_status.setText(f"✅ {msg}")
+            self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+            # Save it implicitly as the active model
+            self._save_lm_model()
+        else:
+            self._lm_model_status.setText(f"❌ {msg}")
+            self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+
+    def _on_lm_eject_model(self):
+        """Unload the selected model from LM Studio using the REST API."""
+        model_id = self._lm_model_combo.currentData()
+        if not model_id or model_id == "local-model":
+            self._lm_model_status.setText("❌ Seleccione un modelo válido")
+            return
+
+        self._lm_eject_model_btn.setEnabled(False)
+        self._lm_model_status.setText(f"⏳ Descargando {model_id}...")
+        self._lm_model_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+
+        import threading
+        def worker():
+            success, msg = unload_model(model_id)
+            QTimer.singleShot(0, lambda: self._on_lm_eject_finished(success, msg))
+            
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_lm_eject_finished(self, success: bool, msg: str):
+        self._lm_eject_model_btn.setEnabled(True)
+        if success:
+            self._lm_model_status.setText(f"✅ {msg}")
+            self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+        else:
+            self._lm_model_status.setText(f"❌ {msg}")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_lmstudio_url(self):
@@ -972,18 +1077,6 @@ class ConfigToolbar(QWidget):
         except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
             pass
 
-        # Fallback: if no models found, add popular ones
-        if models_found == 0:
-            for model_id, model_name in [
-                ("llama3.2", "Llama 3.2 (8B)"),
-                ("llama3.1", "Llama 3.1 (70B)"),
-                ("mistral", "Mistral (7B)"),
-                ("phi4", "Phi-4"),
-                ("deepseek-r1", "DeepSeek R1"),
-                ("gemma2", "Gemma 2"),
-            ]:
-                self._model_combo.addItem(model_name, model_id)
-
         # Pre-select saved model
         for i in range(self._model_combo.count()):
             if self._model_combo.itemData(i) == saved_model or self._model_combo.itemText(i) == saved_model:
@@ -1062,55 +1155,91 @@ class ConfigToolbar(QWidget):
 
     def _quick_pull(self, model_id: str):
         """Quick pull a preset model in the Ollama tab."""
+        # Security: sanitize model_id
+        import re
+        if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+            self._pull_status.setText("🚫 Error: Modelo inválido")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+            
         self._model_combo.setCurrentText(model_id)
-        self._pull_status.setText(f"ÔñÁ  Pulling {model_id}...")
+        self._pull_status.setText(f"⏳  Pulling {model_id}...")
         self._pull_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
         self._pull_btn.setEnabled(False)
         try:
-            cmd = f"ollama pull {model_id}"
             if _OS == "Windows":
-                subprocess.Popen(["start", "cmd", "/k", cmd], shell=True, cwd=str(Path.home()))
+                subprocess.Popen(["cmd.exe", "/c", "start", "cmd.exe", "/k", "ollama", "pull", model_id], cwd=str(Path.home()))
             elif _OS == "Darwin":
-                subprocess.Popen(["osascript", "-e", f'tell app "Terminal" to do script "{cmd}"'], cwd=str(Path.home()))
+                subprocess.Popen(["osascript", "-e", f'tell app "Terminal" to do script "ollama pull {model_id}"'], cwd=str(Path.home()))
             else:
-                subprocess.Popen(["x-terminal-emulator", "-e", cmd], cwd=str(Path.home()))
+                subprocess.Popen(["x-terminal-emulator", "-e", f"ollama pull {model_id}"], cwd=str(Path.home()))
         except Exception as e:
-            self._pull_status.setText(f"ÔØî Error: {e}")
+            self._pull_status.setText(f"❌ Error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
         QTimer.singleShot(3000, lambda: (
             self._pull_btn.setEnabled(True),
-            self._pull_status.setText("Ô£à Pull started ÔÇö check terminal"),
+            self._pull_status.setText("✅ Pull started — check terminal"),
             self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;"),
         ))
 
+    def _on_eject_ollama_model(self):
+        """Run ollama stop <model> to unload it from RAM/VRAM."""
+        model_id = self._model_combo.currentData() or self._model_combo.currentText()
+        if not model_id:
+            return
+            
+        import re
+        if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+            self._pull_status.setText("🚫 Error: Modelo inválido")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+            
+        self._pull_status.setText(f"⏳  Ejecting {model_id}...")
+        self._pull_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+        
+        try:
+            # Run ollama stop synchronously (it should be fast)
+            subprocess.run(["ollama", "stop", model_id], capture_output=True, timeout=10)
+            self._pull_status.setText(f"✅ {model_id} ejectado")
+            self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+        except Exception as e:
+            self._pull_status.setText(f"❌ Error: {e}")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+
     def _on_pull_model(self):
-        """Run ollama pull <model> in a terminal window."""
-        model_id = self._model_combo.currentData()
-        self._pull_status.setText(f"Ô¼ç  Pulling {model_id}...")
+        """Run ollama pull <model> in a terminal window securely."""
+        model_id = self._model_combo.currentData() or self._model_combo.currentText()
+        
+        # Security: sanitize model_id
+        import re
+        if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+            self._pull_status.setText("🚫 Error: Modelo inválido")
+            self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            return
+            
+        self._pull_status.setText(f"⏳  Pulling {model_id}...")
         self._pull_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
         self._pull_btn.setEnabled(False)
 
-        # Run ollama pull in a new terminal window
+        # Run ollama pull in a new terminal window securely
         try:
-            cmd = f"ollama pull {model_id}"
             if _OS == "Windows":
                 subprocess.Popen(
-                    ["start", "cmd", "/k", cmd],
-                    shell=True, cwd=str(Path.home())
+                    ["cmd.exe", "/c", "start", "cmd.exe", "/k", "ollama", "pull", model_id],
+                    cwd=str(Path.home())
                 )
             elif _OS == "Darwin":
                 subprocess.Popen(
-                    ["osascript", "-e",
-                     f'tell app "Terminal" to do script "{cmd}"'],
+                    ["osascript", "-e", f'tell app "Terminal" to do script "ollama pull {model_id}"'],
                     cwd=str(Path.home())
                 )
             else:  # Linux
                 subprocess.Popen(
-                    ["x-terminal-emulator", "-e", cmd],
+                    ["x-terminal-emulator", "-e", f"ollama pull {model_id}"],
                     cwd=str(Path.home())
                 )
         except Exception as e:
-            self._pull_status.setText(f"ÔØî Error: {e}")
+            self._pull_status.setText(f"❌ Error: {e}")
             self._pull_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
         # Re-enable after a moment
@@ -1121,23 +1250,21 @@ class ConfigToolbar(QWidget):
         ))
 
     def _on_up_server(self):
-        """Start ollama server in a terminal."""
+        """Start ollama server in a terminal securely."""
         try:
-            cmd = "ollama serve"
             if _OS == "Windows":
                 subprocess.Popen(
-                    ["start", "cmd", "/k", cmd],
-                    shell=True, cwd=str(Path.home())
+                    ["cmd.exe", "/c", "start", "cmd.exe", "/k", "ollama", "serve"],
+                    cwd=str(Path.home())
                 )
             elif _OS == "Darwin":
                 subprocess.Popen(
-                    ["osascript", "-e",
-                     f'tell app "Terminal" to do script "{cmd}"'],
+                    ["osascript", "-e", f'tell app "Terminal" to do script "ollama serve"'],
                     cwd=str(Path.home())
                 )
             else:
                 subprocess.Popen(
-                    ["x-terminal-emulator", "-e", cmd],
+                    ["x-terminal-emulator", "-e", "ollama serve"],
                     cwd=str(Path.home())
                 )
             self._srv_status.setText("Ôû▓ Server starting...")

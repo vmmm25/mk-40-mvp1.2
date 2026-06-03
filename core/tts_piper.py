@@ -39,10 +39,13 @@ class PiperTTSProvider:
             return
 
         try:
-            # Invocar Piper usando subprocess y powershell para evitar problemas de piping en cmd normal
-            cmd = f'powershell -Command "Write-Output \\"{text}\\" | & \\"{self.piper_path}\\" --model \\"{self.piper_model}\\" --output_file \\"{self.temp_wav}\\""'
+            # Invocar Piper usando subprocess sin shell=True por seguridad
+            cmd = [
+                "powershell", "-Command",
+                f'Write-Output "{text}" | & "{self.piper_path}" --model "{self.piper_model}" --output_file "{self.temp_wav}"'
+            ]
             
-            subprocess.run(cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(cmd, shell=False, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
             if self.temp_wav.exists():
                 self._play_audio_file(str(self.temp_wav), blocking)
