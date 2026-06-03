@@ -1,0 +1,319 @@
+15:     QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit,
+20: from memory.config_manager import load_config, save_config, get_model, set_model
+23:     find_lmstudio_path, get_downloaded_models,
+26:     load_model, unload_model,
+33: # ÔöÇÔöÇ Shared OpenRouter free-model catalogue ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+34: # Single source of truth used by BOTH the config tab and the right-panel combo.
+35: # Tuple layout: (model_id, display_name)
+36: _OR_FREE_MODELS: list[tuple[str, str]] = [
+65:     ("openrouter/free", "Free Models Router"),
+80: def _populate_or_combo(combo: "QComboBox", saved_model: str) -> None:
+81:     """Fill a QComboBox with _OR_FREE_MODELS and pre-select the saved model."""
+82:     combo.blockSignals(True)
+83:     combo.clear()
+84:     for mid, desc in _OR_FREE_MODELS:
+85:         combo.addItem(desc, mid)
+86:     # Pre-select saved model (or first entry if not found)
+87:     for i in range(combo.count()):
+88:         if combo.itemData(i) == saved_model:
+89:             combo.setCurrentIndex(i)
+91:     combo.blockSignals(False)
+100: _COMBO_STYLE = (
+101:     "QComboBox { background: #000d12; color: #8ffcff;"
+103:     "QComboBox:hover { border: 1px solid #1a5c7a; }"
+104:     "QComboBox::drop-down { border: none; width: 20px; }"
+105:     "QComboBox QAbstractItemView { background: #000d12; color: #8ffcff;"
+239:             "Requerida para modelos en la nube. Consíguela en openrouter.ai/keys",
+264:         lay.addWidget(self._build_lbl("📦  FREE MODELS (OpenRouter)", 9, True, C.GREEN, align=Qt.AlignmentFlag.AlignCenter))
+265:         self._or_model_combo = QComboBox()
+266:         self._or_model_combo.setFont(QFont("Segoe UI", 11))
+267:         self._or_model_combo.setFixedHeight(30)
+268:         self._or_model_combo.setStyleSheet(_COMBO_STYLE)
+269:         _populate_or_combo(self._or_model_combo, get_model("openrouter"))
+270:         lay.addWidget(self._or_model_combo)
+272:         save_model_row = QHBoxLayout(); save_model_row.setSpacing(15)
+273:         self._save_or_model_btn = self._build_btn("GUARDAR MODELO", C.GREEN, h=30, w=140)
+274:         self._save_or_model_btn.clicked.connect(self._save_or_model)
+275:         self._or_model_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+276:         save_model_row.addStretch()
+277:         save_model_row.addWidget(self._save_or_model_btn)
+278:         save_model_row.addWidget(self._or_model_status)
+279:         save_model_row.addStretch()
+280:         lay.addLayout(save_model_row)
+285:     def _save_or_model(self):
+286:         """Save selected OpenRouter free model to config, sync right-panel, restart engine."""
+287:         model_id = self._or_model_combo.currentData()
+288:         if model_id:
+289:             set_model(model_id, "openrouter")
+290:             self._or_model_status.setText(f"Ô£à Guardado: {model_id.split('/')[1].split(':')[0]}")
+291:             self._or_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+292:             # Keep the right-panel combo in sync
+293:             right_combo = self._main_win._right_model_combo
+294:             _populate_or_combo(right_combo, model_id)
+295:             # Trigger engine restart so the new model takes effect
+301:             self._or_model_status.setText("ÔØî No se seleccion├│ modelo")
+302:             self._or_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+319:         self._mic_combo = QComboBox()
+320:         self._speaker_combo = QComboBox()
+321:         for combo in (self._mic_combo, self._speaker_combo):
+322:             combo.setFont(QFont("Segoe UI", 10))
+323:             combo.setFixedHeight(28)
+324:             combo.setStyleSheet(_COMBO_STYLE)
+328:         mic_row.addWidget(self._mic_combo, stretch=1)
+333:         spk_row.addWidget(self._speaker_combo, stretch=1)
+373:         wsp_lay.addWidget(self._build_lbl("Motor de Escucha Offline. Requiere descargar modelo local.", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+384:         self._whisper_model_edit = QLineEdit(cfg.get("whisper_model", ""))
+385:         self._whisper_model_edit.setStyleSheet(_INPUT_STYLE); self._whisper_model_edit.setPlaceholderText("Archivo de modelo .bin")
+386:         self._whisper_model_btn = self._build_btn("...", C.PRI, h=24, w=30)
+387:         self._whisper_model_btn.clicked.connect(self._browse_whisper_model)
+388:         wm_row.addWidget(self._whisper_model_edit, stretch=1); wm_row.addWidget(self._whisper_model_btn)
+406:         self._piper_model_edit = QLineEdit(cfg.get("piper_model", ""))
+407:         self._piper_model_edit.setStyleSheet(_INPUT_STYLE); self._piper_model_edit.setPlaceholderText("Archivo de modelo .onnx")
+408:         self._piper_model_btn = self._build_btn("...", C.PRI, h=24, w=30)
+409:         self._piper_model_btn.clicked.connect(self._browse_piper_model)
+410:         pm_row.addWidget(self._piper_model_edit, stretch=1); pm_row.addWidget(self._piper_model_btn)
+425:         self._stt_engine_combo = QComboBox()
+426:         self._stt_engine_combo.setFont(QFont("Segoe UI", 10))
+427:         self._stt_engine_combo.setFixedHeight(28)
+428:         self._stt_engine_combo.setStyleSheet(_COMBO_STYLE)
+429:         self._stt_engine_combo.addItem("Gemini Cloud", "gemini")
+430:         self._stt_engine_combo.addItem("Whisper Local", "whisper")
+431:         self._select_combo_by_data(self._stt_engine_combo, cfg.get("stt_engine", "gemini"))
+432:         eng_lay.addWidget(self._stt_engine_combo)
+435:         self._tts_engine_combo = QComboBox()
+436:         self._tts_engine_combo.setFont(QFont("Segoe UI", 10))
+437:         self._tts_engine_combo.setFixedHeight(28)
+438:         self._tts_engine_combo.setStyleSheet(_COMBO_STYLE)
+439:         self._tts_engine_combo.addItem("Gemini Cloud", "gemini")
+440:         self._tts_engine_combo.addItem("Piper Local", "piper")
+441:         self._select_combo_by_data(self._tts_engine_combo, cfg.get("tts_engine", "piper"))
+442:         eng_lay.addWidget(self._tts_engine_combo)
+469:         stt = self._stt_engine_combo.currentData()
+470:         tts = self._tts_engine_combo.currentData()
+474:         whisper_m = self._whisper_model_edit.text().strip()
+476:         piper_m = self._piper_model_edit.text().strip()
+485:             "whisper_model": whisper_m,
+487:             "piper_model": piper_m,
+516:     def _browse_whisper_model(self):
+518:             self, "Seleccionar modelo GGML de Whisper (.bin)", "", 
+519:             "Modelos GGML (*.bin);;Todos los archivos (*)"
+522:             self._whisper_model_edit.setText(os.path.normpath(file_path))
+534:     def _browse_piper_model(self):
+536:             self, "Seleccionar modelo de voz Piper (.onnx)", "", 
+537:             "Modelos ONNX (*.onnx);;Todos los archivos (*)"
+540:             self._piper_model_edit.setText(os.path.normpath(file_path))
+549:         lay.addWidget(self._build_lbl("🦙  OLLAMA LOCAL MODELS", 10, True, C.ACC2, align=Qt.AlignmentFlag.AlignCenter))
+550:         lay.addWidget(self._build_lbl("Gestiona tus modelos de IA locales. Ollama se iniciará automáticamente.", 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignCenter))
+553:         # Combo and Refresh
+554:         combo_row = QHBoxLayout(); combo_row.setSpacing(10)
+555:         self._model_combo = QComboBox()
+556:         self._model_combo.setEditable(True)
+557:         self._model_combo.setFont(QFont("Segoe UI", 12))
+558:         self._model_combo.setFixedHeight(34)
+559:         self._model_combo.setStyleSheet(_COMBO_STYLE)
+560:         combo_row.addWidget(self._model_combo, stretch=1)
+563:         self._reload_btn.setToolTip("Refresh model list")
+564:         self._reload_btn.clicked.connect(self._refresh_model_list)
+565:         combo_row.addWidget(self._reload_btn)
+568:         self._run_btn.clicked.connect(self._save_ollama_model)
+569:         combo_row.addWidget(self._run_btn)
+572:         self._eject_btn.clicked.connect(self._on_eject_ollama_model)
+573:         self._eject_btn.setToolTip("Descarga el modelo de la memoria RAM/VRAM")
+574:         combo_row.addWidget(self._eject_btn)
+577:         self._pull_btn.clicked.connect(self._on_pull_model)
+578:         combo_row.addWidget(self._pull_btn)
+579:         lay.addLayout(combo_row)
+593:         self._open_ollama_btn = self._build_btn("📁 CARPETA MODELOS", C.PRI, h=26, bold=False)
+594:         self._open_ollama_btn.clicked.connect(self._open_ollama_models_folder)
+630:         self._refresh_model_list()
+686:         lay.addWidget(self._build_lbl("📦  MODEL SELECTION", 9, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
+687:         self._lm_model_combo = QComboBox()
+688:         self._lm_model_combo.setFont(QFont("Segoe UI", 11))
+689:         self._lm_model_combo.setFixedHeight(30)
+690:         self._lm_model_combo.setStyleSheet(_COMBO_STYLE)
+691:         lay.addWidget(self._lm_model_combo)
+693:         model_action_row = QHBoxLayout()
+694:         model_action_row.addStretch()
+696:         self._lm_run_model_btn = self._build_btn("▶ RUN", C.GREEN, h=30)
+697:         self._lm_run_model_btn.clicked.connect(self._on_lm_run_model)
+698:         model_action_row.addWidget(self._lm_run_model_btn)
+700:         self._lm_eject_model_btn = self._build_btn("⏹ EJECT", C.RED, h=30)
+701:         self._lm_eject_model_btn.clicked.connect(self._on_lm_eject_model)
+702:         self._lm_eject_model_btn.setToolTip("Descargar modelo de RAM/VRAM")
+703:         model_action_row.addWidget(self._lm_eject_model_btn)
+705:         self._save_lm_model_btn = self._build_btn("GUARDAR", C.PRI, h=30)
+706:         self._save_lm_model_btn.clicked.connect(self._save_lm_model)
+707:         model_action_row.addWidget(self._save_lm_model_btn)
+709:         self._lm_refresh_models_btn = self._build_btn("↻ SCAN", C.ACC, h=30)
+710:         self._lm_refresh_models_btn.clicked.connect(self._populate_lm_models)
+711:         model_action_row.addWidget(self._lm_refresh_models_btn)
+714:         self._lm_folder_btn.clicked.connect(self._open_lm_models_folder)
+715:         model_action_row.addWidget(self._lm_folder_btn)
+717:         self._lm_model_status = self._build_lbl("", 8, color=C.TEXT_DIM)
+718:         model_action_row.addWidget(self._lm_model_status)
+719:         model_action_row.addStretch()
+720:         lay.addLayout(model_action_row)
+726:         self._populate_lm_models()
+749:     def _populate_lm_models(self):
+750:         """Scan for local models and populate the combo."""
+751:         self._lm_model_combo.blockSignals(True)
+752:         self._lm_model_combo.clear()
+754:         saved_model = get_model("lmstudio")
+755:         models = get_downloaded_models()
+757:         if models:
+758:             for m in models:
+759:                 self._lm_model_combo.addItem(m["name"], m["id"])
+761:             # Pre-select saved model
+762:             for i in range(self._lm_model_combo.count()):
+763:                 if self._lm_model_combo.itemData(i) == saved_model:
+764:                     self._lm_model_combo.setCurrentIndex(i)
+768:                 self._lm_model_combo.setCurrentIndex(0)
+770:             self._lm_model_combo.addItem("Default (loaded model)", "local-model")
+772:         self._lm_model_combo.blockSignals(False)
+775:         count = self._lm_model_combo.count()
+777:             self._lm_model_status.setText(f"­ƒôª {count} modelo(s) encontrado(s)")
+778:             self._lm_model_status.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
+780:             self._lm_model_status.setText("ÔÜá´©Å No se encontraron modelos locales")
+781:             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+783:     def _save_lm_model(self):
+784:         """Save LM Studio model selection, sync right-panel, restart engine."""
+785:         model_id = self._lm_model_combo.currentData()
+786:         if model_id:
+787:             set_model(model_id, "lmstudio")
+788:             short_name = model_id.split("/")[-1].split(":")[0]
+789:             self._lm_model_status.setText(f"Ô£à Guardado: {short_name}")
+790:             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+791:             # Keep right-panel combo in sync
+792:             right_combo = self._main_win._right_model_combo
+793:             if hasattr(right_combo, 'blockSignals'):
+794:                 right_combo.blockSignals(True)
+795:                 right_combo.clear()
+796:                 # Re-populate with just models from combo
+797:                 for i in range(self._lm_model_combo.count()):
+798:                     mid = self._lm_model_combo.itemData(i)
+799:                     name = self._lm_model_combo.itemText(i)
+800:                     right_combo.addItem(name, mid)
+802:                 for i in range(right_combo.count()):
+803:                     if right_combo.itemData(i) == model_id:
+804:                         right_combo.setCurrentIndex(i)
+806:                 right_combo.blockSignals(False)
+813:             self._lm_model_status.setText("❌ No se seleccionó modelo")
+814:             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+816:     def _on_lm_run_model(self):
+817:         """Load the selected model into LM Studio using the REST API."""
+818:         model_id = self._lm_model_combo.currentData()
+819:         if not model_id or model_id == "local-model":
+820:             self._lm_model_status.setText("❌ Seleccione un modelo válido")
+823:         self._lm_run_model_btn.setEnabled(False)
+824:         self._lm_model_status.setText(f"⏳ Cargando {model_id}...")
+825:         self._lm_model_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+829:             success, msg = load_model(model_id)
+836:         self._lm_run_model_btn.setEnabled(True)
+838:             self._lm_model_status.setText(f"✅ {msg}")
+839:             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+840:             # Save it implicitly as the active model
+841:             self._save_lm_model()
+843:             self._lm_model_status.setText(f"❌ {msg}")
+844:             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+846:     def _on_lm_eject_model(self):
+847:         """Unload the selected model from LM Studio using the REST API."""
+848:         model_id = self._lm_model_combo.currentData()
+849:         if not model_id or model_id == "local-model":
+850:             self._lm_model_status.setText("❌ Seleccione un modelo válido")
+853:         self._lm_eject_model_btn.setEnabled(False)
+854:         self._lm_model_status.setText(f"⏳ Descargando {model_id}...")
+855:         self._lm_model_status.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+859:             success, msg = unload_model(model_id)
+865:         self._lm_eject_model_btn.setEnabled(True)
+867:             self._lm_model_status.setText(f"✅ {msg}")
+868:             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+870:             self._lm_model_status.setText(f"❌ {msg}")
+871:             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+976:         self._mic_combo.addItem("­ƒÄÖ  System Default", None)
+977:         self._speaker_combo.addItem("­ƒöè  System Default", None)
+999:                     self._mic_combo.addItem(label, i)
+1003:                     self._speaker_combo.addItem(label, i)
+1005:             self._select_combo_by_data(self._mic_combo, saved_mic)
+1006:             self._select_combo_by_data(self._speaker_combo, saved_spk)
+1008:             self._mic_combo.addItem("No audio devices found", -1)
+1009:             self._speaker_combo.addItem("No audio devices found", -1)
+1012:         self._mic_combo.currentIndexChanged.connect(self._on_audio_dev_changed)
+1013:         self._speaker_combo.currentIndexChanged.connect(self._on_audio_dev_changed)
+1015:     def _select_combo_by_data(self, combo, data):
+1016:         """Select a QComboBox item by its user data."""
+1017:         for i in range(combo.count()):
+1018:             if combo.itemData(i) == data:
+1019:                 combo.setCurrentIndex(i)
+1038:             mic_id = self._mic_combo.currentData()
+1039:             spk_id = self._speaker_combo.currentData()
+1047:     def _refresh_model_list(self):
+1048:         """Run 'ollama list' and populate the dropdown with actual installed models."""
+1049:         if not hasattr(self, '_model_combo') or not self._model_combo:
+1051:         self._model_combo.blockSignals(True)
+1052:         self._model_combo.clear()
+1056:         saved_model = get_model("ollama")
+1057:         models_found = 0
+1072:                         model_id = parts[0].strip()
+1074:                         display = model_id.replace(":latest", "")
+1075:                         self._model_combo.addItem(display, model_id)
+1076:                         models_found += 1
+1080:         # Pre-select saved model
+1081:         for i in range(self._model_combo.count()):
+1082:             if self._model_combo.itemData(i) == saved_model or self._model_combo.itemText(i) == saved_model:
+1083:                 self._model_combo.setCurrentIndex(i)
+1086:             if self._model_combo.count() > 0:
+1087:                 self._model_combo.setCurrentIndex(0)
+1089:         self._model_combo.blockSignals(False)
+1094:     def _save_ollama_model(self):
+1095:         model_id = self._model_combo.currentData() or self._model_combo.currentText()
+1096:         if model_id:
+1097:             set_model(model_id, "ollama")
+1098:             self._pull_status.setText(f"✅ Guardado: {model_id}")
+1102:                 right_combo = self._main_win._right_model_combo
+1103:                 # If the provider is ollama, we update the combo
+1107:                     for i in range(right_combo.count()):
+1108:                         if right_combo.itemData(i) == model_id or right_combo.itemText(i) == model_id:
+1109:                             right_combo.setCurrentIndex(i)
+1129:     def _open_ollama_models_folder(self):
+1132:             path = "~/.ollama/models"
+1134:             path = "~/.ollama/models"
+1136:             path = "/usr/share/ollama/.ollama/models"
+1139:     def _open_lm_models_folder(self):
+1140:         self._open_folder("~/.cache/lm-studio/models")
+1142:     def _quick_run(self, model_id: str):
+1143:         # Selecciona el modelo si está en la lista o lo agrega
+1145:         for i in range(self._model_combo.count()):
+1146:             if self._model_combo.itemData(i) == model_id or self._model_combo.itemText(i) == model_id:
+1147:                 self._model_combo.setCurrentIndex(i)
+1151:             self._model_combo.addItem(model_id, model_id)
+1152:             self._model_combo.setCurrentIndex(self._model_combo.count() - 1)
+1154:         self._save_ollama_model()
+1156:     def _quick_pull(self, model_id: str):
+1157:         """Quick pull a preset model in the Ollama tab."""
+1158:         # Security: sanitize model_id
+1160:         if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+1161:             self._pull_status.setText("🚫 Error: Modelo inválido")
+1165:         self._model_combo.setCurrentText(model_id)
+1166:         self._pull_status.setText(f"⏳  Pulling {model_id}...")
+1171:                 subprocess.Popen(["cmd.exe", "/c", "start", "cmd.exe", "/k", "ollama", "pull", model_id], cwd=str(Path.home()))
+1173:                 subprocess.Popen(["osascript", "-e", f'tell app "Terminal" to do script "ollama pull {model_id}"'], cwd=str(Path.home()))
+1175:                 subprocess.Popen(["x-terminal-emulator", "-e", f"ollama pull {model_id}"], cwd=str(Path.home()))
+1185:     def _on_eject_ollama_model(self):
+1186:         """Run ollama stop <model> to unload it from RAM/VRAM."""
+1187:         model_id = self._model_combo.currentData() or self._model_combo.currentText()
+1188:         if not model_id:
+1192:         if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+1193:             self._pull_status.setText("🚫 Error: Modelo inválido")
+1197:         self._pull_status.setText(f"⏳  Ejecting {model_id}...")
+1202:             subprocess.run(["ollama", "stop", model_id], capture_output=True, timeout=10)
+1203:             self._pull_status.setText(f"✅ {model_id} ejectado")
+1209:     def _on_pull_model(self):
+1210:         """Run ollama pull <model> in a terminal window securely."""
+1211:         model_id = self._model_combo.currentData() or self._model_combo.currentText()
+1213:         # Security: sanitize model_id
+1215:         if not re.match(r"^[a-zA-Z0-9\-\.\:]+$", model_id):
+1216:             self._pull_status.setText("🚫 Error: Modelo inválido")
+1220:         self._pull_status.setText(f"⏳  Pulling {model_id}...")
+1228:                     ["cmd.exe", "/c", "start", "cmd.exe", "/k", "ollama", "pull", model_id],
+1233:                     ["osascript", "-e", f'tell app "Terminal" to do script "ollama pull {model_id}"'],
+1238:                     ["x-terminal-emulator", "-e", f"ollama pull {model_id}"],

@@ -1636,21 +1636,25 @@ class MainWindow(QMainWindow):
             _populate_or_combo(self._right_model_combo, saved_model or _OR_FREE_MODELS[0][0])
         elif provider == "ollama":
             self._right_model_combo.setVisible(True)
-            ollama_models = [
-                ("llama3.2", "Llama 3.2 (8B)"),
-                ("llama3.1", "Llama 3.1 (70B)"),
-                ("mistral",  "Mistral (7B)"),
-                ("mixtral",  "Mixtral (8x7B)"),
-                ("qwen2.5",  "Qwen 2.5"),
-                ("phi4",     "Phi-4"),
-                ("deepseek-r1", "DeepSeek R1"),
-                ("codellama", "CodeLlama"),
-                ("gemma2",   "Gemma 2"),
-            ]
-            for mid, desc in ollama_models:
-                self._right_model_combo.addItem(desc, mid)
+            try:
+                res = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=3)
+                if res.returncode == 0:
+                    lines = res.stdout.strip().split("\n")
+                    for line in lines[1:]:
+                        parts = line.split()
+                        if parts:
+                            model_id = parts[0].strip()
+                            display = model_id.replace(":latest", "")
+                            self._right_model_combo.addItem(display, model_id)
+            except Exception:
+                pass
+                
+            # If nothing was loaded but we have a saved model, add it as fallback
+            if self._right_model_combo.count() == 0 and saved_model:
+                self._right_model_combo.addItem(saved_model.replace(":latest", ""), saved_model)
+                
             for i in range(self._right_model_combo.count()):
-                if self._right_model_combo.itemData(i) == saved_model:
+                if self._right_model_combo.itemData(i) == saved_model or self._right_model_combo.itemText(i) == saved_model:
                     self._right_model_combo.setCurrentIndex(i)
                     break
         elif provider == "lmstudio":
