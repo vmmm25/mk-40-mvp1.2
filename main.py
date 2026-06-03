@@ -402,8 +402,14 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
             )
             return response.text.strip() if response.text else ""
             
-        raw_text = await asyncio.to_thread(run_gemini)
-        return _clean_whisper_transcript(raw_text)
+        try:
+            raw_text = await asyncio.to_thread(run_gemini)
+            return _clean_whisper_transcript(raw_text)
+        except Exception as ge:
+            print(f"[JARVIS] ⚠️ Gemini Cloud STT failed ({ge}). Falling back to local Whisper...")
+            cfg_fallback = dict(cfg)
+            cfg_fallback["stt_engine"] = "whisper"
+            return await _transcribe_audio(wav_path, cfg_fallback)
 
 
 async def _synthesize_with_piper_fallback(text: str, cfg: dict, reason: str) -> bytes | None:
