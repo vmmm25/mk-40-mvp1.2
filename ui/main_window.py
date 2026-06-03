@@ -15,7 +15,7 @@ import psutil
 
 from PyQt6.QtCore import (
     QEasingCurve, QMimeData, QObject, QPointF, QRectF, QSize, Qt,
-    QTimer, QUrl, pyqtSignal,
+    QTimer, QUrl, pyqtSignal, QThread,
 )
 from PyQt6.QtGui import (
     QBrush, QColor, QDragEnterEvent, QDropEvent, QFont, QFontDatabase,
@@ -225,6 +225,53 @@ class _SysMetrics:
 
 
 _metrics = _SysMetrics()
+
+
+class ProviderStatusWorker(QThread):
+    status_ready = pyqtSignal(dict)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.running = True
+        
+    def run(self):
+        import requests
+        import time
+        from memory.config_manager import load_config
+        
+        while self.running:
+            statuses = {}
+            cfg = load_config()
+            
+            ollama_url = cfg.get("ollama_url", "http://localhost:11434").rstrip("/")
+            try:
+                r = requests.get(ollama_url, timeout=0.5)
+                statuses['ollama'] = (r.status_code == 200)
+            except Exception:
+                statuses['ollama'] = False
+            
+            lm_url = cfg.get("lmstudio_url", "http://localhost:1234").rstrip("/")
+            try:
+                r = requests.get(f"{lm_url}/v1/models", timeout=0.5)
+                statuses['lmstudio'] = (r.status_code == 200)
+            except Exception:
+                statuses['lmstudio'] = False
+                
+            try:
+                r = requests.get("https://openrouter.ai/", timeout=1.0)
+                statuses['openrouter'] = (r.status_code == 200)
+            except Exception:
+                statuses['openrouter'] = False
+                
+            self.status_ready.emit(statuses)
+            
+            for _ in range(30):
+                if not self.running: break
+                time.sleep(0.1)
+
+    def stop(self):
+        self.running = False
+        self.wait()
 
 
 class MetricBar(QWidget):
@@ -898,6 +945,12 @@ class MainWindow(QMainWindow):
         self._ready = self._check_config()
         if not self._ready:
             self._show_setup()
+
+        self._provider_statuses = {"ollama": False, "lmstudio": False, "openrouter": False}
+        self._current_state = "IDLE"
+        self._status_worker = ProviderStatusWorker(self)
+        self._status_worker.status_ready.connect(self._update_provider_status)
+        self._status_worker.start()
 
         sc_mute = QShortcut(QKeySequence("F4"), self)
         sc_mute.activated.connect(self._toggle_mute)
@@ -1707,8 +1760,36 @@ class MainWindow(QMainWindow):
             threading.Thread(target=self.on_text_command, args=(txt,), daemon=True).start()
 
     def _apply_state(self, state: str):
+        self._current_state = state
         self.hud.state    = state
         self.hud.speaking = (state == "SPEAKING")
+        self._refresh_provider_buttons()
+
+    def _update_provider_status(self, statuses: dict):
+        self._provider_statuses = statuses
+        self._refresh_provider_buttons()
+
+    def _refresh_provider_buttons(self):
+        if not hasattr(self, '_provider_statuses'): return
+        cfg = load_config()
+        active = cfg.get("selected_provider", "ollama")
+        is_processing = self._current_state in ("THINKING", "SPEAKING")
+
+        def _get_dot(prov_key: str) -> str:
+            if active == prov_key and is_processing: return "🟡"
+            return "🟢" if self._provider_statuses.get(prov_key, False) else "🔴"
+
+        if hasattr(self, '_ollama_btn'):
+            self._ollama_btn.setText(f"{_get_dot('ollama')} OLLAMA (OLL)")
+        if hasattr(self, '_lm_btn'):
+            self._lm_btn.setText(f"{_get_dot('lmstudio')} LM STUDIO (LM)")
+        if hasattr(self, '_or_btn'):
+            self._or_btn.setText(f"{_get_dot('openrouter')} OPENROUTER (OR)")
+
+        if hasattr(self, '_provider_lbl'):
+            prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(active, active)
+            dot_act = _get_dot(active)
+            self._provider_lbl.setText(f"{dot_act}  {prov_name}")
 
     def _check_config(self) -> bool:
         return is_configured()
@@ -1749,6 +1830,11 @@ class MainWindow(QMainWindow):
             self._provider_lbl.setText(f"◈  {prov_name.upper()}")
         if hasattr(self, '_config_bar'):
             self._config_bar.update_status(provider)
+
+    def closeEvent(self, event):
+        if hasattr(self, "_status_worker") and self._status_worker:
+            self._status_worker.stop()
+        super().closeEvent(event)
 
 
 class _RootShim:
