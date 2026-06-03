@@ -975,7 +975,14 @@ class JarvisChat:
         now        = datetime.now()
         time_str   = now.strftime("%A, %B %d, %Y — %I:%M %p")
 
+        # Get current provider and model to enforce identity
+        cfg = load_config()
+        selected = cfg.get("selected_provider", "gemini")
+        model_name = get_model(selected)
+        prov_name = {"gemini": "Gemini", "ollama": "Ollama", "openrouter": "OpenRouter", "lmstudio": "LM Studio"}.get(selected, selected)
+
         parts = [
+            f"[SYSTEM IDENTITY]\nYou are currently running via {prov_name} using the model: {model_name}.\n",
             f"[CURRENT DATE & TIME]\nRight now it is: {time_str}\n\n"
         ]
         if mem_str:
