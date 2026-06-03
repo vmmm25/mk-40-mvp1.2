@@ -134,6 +134,7 @@ class OllamaProvider(BaseProvider):
             "options": {
                 "temperature": self.config.temperature,
                 "num_predict": self.config.max_tokens,
+                "num_ctx": 4096,  # Limitar contexto para evitar Out Of Memory en modelos con 128k nativo
             },
         }
 
