@@ -1411,6 +1411,20 @@ class MainWindow(QMainWindow):
         self._right_model_combo.setStyleSheet(_COMBO_STYLE)
         self._right_model_combo.currentIndexChanged.connect(self._on_right_model_changed)
         model_row.addWidget(self._right_model_combo, stretch=1)
+        
+        self._model_action_btn = QPushButton("📁")
+        self._model_action_btn.setFont(QFont("Segoe UI", 10))
+        self._model_action_btn.setFixedSize(28, 28)
+        self._model_action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._model_action_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #000d12; color: {C.PRI};
+                border: 1px solid {C.BORDER}; border-radius: 3px;
+            }}
+            QPushButton:hover {{ background: {C.PRI}; color: #000; }}
+        """)
+        self._model_action_btn.clicked.connect(self._on_model_action_clicked)
+        model_row.addWidget(self._model_action_btn)
         chat_col.addLayout(model_row)
 
         saved_prov = cfg.get("selected_provider", "ollama")
@@ -1794,6 +1808,14 @@ class MainWindow(QMainWindow):
             prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(active, active)
             dot_act = _get_dot(active)
             self._provider_lbl.setText(f"{dot_act}  {prov_name}")
+            
+            if hasattr(self, '_model_action_btn'):
+                if active == "openrouter":
+                    self._model_action_btn.setText("🌐")
+                    self._model_action_btn.setToolTip("Abrir OpenRouter Models en el navegador")
+                else:
+                    self._model_action_btn.setText("📁")
+                    self._model_action_btn.setToolTip(f"Abrir carpeta de modelos de {prov_name}")
 
     def _check_config(self) -> bool:
         return is_configured()
@@ -1839,6 +1861,33 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_status_worker") and self._status_worker:
             self._status_worker.stop()
         super().closeEvent(event)
+
+    def _on_model_action_clicked(self):
+        cfg = load_config()
+        active = cfg.get("selected_provider", "ollama")
+        if active == "ollama":
+            path = "~/.ollama/models"
+            if _OS == "Windows": path = "~/.ollama/models"
+            elif _OS == "Darwin": path = "~/.ollama/models"
+            else: path = "/usr/share/ollama/.ollama/models"
+            path = os.path.expanduser(path)
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            if _OS == "Windows": os.startfile(path)
+            elif _OS == "Darwin": subprocess.run(["open", path])
+            else: subprocess.run(["xdg-open", path])
+            
+        elif active == "lmstudio":
+            path = os.path.expanduser("~/.cache/lm-studio/models")
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            if _OS == "Windows": os.startfile(path)
+            elif _OS == "Darwin": subprocess.run(["open", path])
+            else: subprocess.run(["xdg-open", path])
+            
+        elif active == "openrouter":
+            import webbrowser
+            webbrowser.open("https://openrouter.ai/models")
 
 
 class _RootShim:
