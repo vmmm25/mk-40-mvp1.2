@@ -389,10 +389,6 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
         with open(wav_path, "rb") as f:
             audio_bytes = f.read()
             
-        def run_gemini():
-            # Now unused, but we keep the logic structure
-            pass
-            
         try:
             response = await client.aio.models.generate_content(
                 model="gemini-2.5-flash",
