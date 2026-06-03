@@ -913,6 +913,15 @@ class JarvisChat:
             # Add user message
             self._history.append(Message(role="user", content=text))
 
+            # Dynamically sync the model from config before calling the provider
+            cfg = load_config()
+            selected_prov = cfg.get("selected_provider", "gemini")
+            new_model = get_model(selected_prov)
+            if hasattr(self.provider, 'model'):
+                self.provider.model = new_model
+            if hasattr(self.provider, 'config') and hasattr(self.provider.config, 'model'):
+                self.provider.config.model = new_model
+
             # Run tool chat loop
             response = await self.provider.tool_chat_loop(
                 messages=self._history,

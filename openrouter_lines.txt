@@ -1,0 +1,10 @@
+6: - OpenRouter: Cloud models via REST API
+34:     get_openrouter_key, get_ollama_url, get_model, set_model, is_configured,
+878: # ── Mode 2: Chat-based (Ollama, OpenRouter, Gemini text) ───────────
+881:     """Text-based chat using any provider (Ollama, OpenRouter, Gemini text) with synchronized voice wrapper support."""
+1187:         prov_name = {"GeminiProvider": "Gemini", "OllamaProvider": "Ollama", "OpenRouterProvider": "OpenRouter", "LMStudioProvider": "LM Studio"}.get(self.provider.__class__.__name__, self.provider.__class__.__name__)
+1218:     if selected == "openrouter":
+1219:         api_key = cfg.get("openrouter_api_key", "")
+1234:             "openrouter_api_key": cfg.get("openrouter_api_key", ""),
+1245:     prov_name = {"gemini": "Gemini", "ollama": "Ollama", "openrouter": "OpenRouter", "lmstudio": "LM Studio"}.get(selected, selected)
+1269:     prov_name = {"gemini": "Gemini", "ollama": "Ollama", "openrouter": "OpenRouter", "lmstudio": "LM Studio"}.get(provider_name, provider_name)

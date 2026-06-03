@@ -1,0 +1,33 @@
+310:         # Sub-tabs for Voice Settings
+311:         self._voice_tabs = QTabWidget()
+312:         self._voice_tabs.setStyleSheet(_TAB_STYLE)
+366:         gem_lay.addWidget(self._build_lbl("☁️ GEMINI VOICE (Cloud)", 10, True, C.ACC, align=Qt.AlignmentFlag.AlignCenter))
+414:         self._voice_tabs.addTab(hw_w, "🎛️ HARDWARE")
+415:         self._voice_tabs.addTab(gem_w, "☁️ GEMINI")
+416:         self._voice_tabs.addTab(wsp_w, "🧠 WHISPER")
+417:         self._voice_tabs.addTab(pip_w, "🗣️ PIPER")
+419:         lay.addWidget(self._voice_tabs, stretch=1)
+446:         # Save Voice Settings
+449:         self._voice_enabled_chk = QCheckBox(" Activar Voz de Jarvis (Global)")
+450:         self._voice_enabled_chk.setStyleSheet(f"color: {C.TEXT_MED}; font-weight: bold;")
+451:         self._voice_enabled_chk.setChecked(cfg.get("voice_wrapper_enabled", False))
+452:         save_row.addWidget(self._voice_enabled_chk)
+454:         self._save_voice_btn = self._build_btn("GUARDAR AJUSTES", C.GREEN, h=30)
+455:         self._save_voice_btn.clicked.connect(self._on_voice_settings_changed)
+456:         save_row.addWidget(self._save_voice_btn)
+463:     def _on_voice_settings_changed(self):
+464:         """Save the updated voice settings to config and update visibility."""
+465:         if not hasattr(self, "_voice_enabled_chk"):
+468:         enabled = self._voice_enabled_chk.isChecked()
+481:             "voice_wrapper_enabled": enabled,
+495:         self._update_voice_visibility()
+497:     def _update_voice_visibility(self):
+498:         """Update visibility of Gemini/Whisper/Piper configuration blocks based on whether voice wrapper is enabled."""
+499:         if not hasattr(self, "_voice_enabled_chk") or not hasattr(self, "_voice_tabs"):
+501:         enabled = self._voice_enabled_chk.isChecked()
+504:         for i in range(1, self._voice_tabs.count()):
+505:             self._voice_tabs.setTabEnabled(i, enabled)
+514:             self._on_voice_settings_changed()
+523:             self._on_voice_settings_changed()
+532:             self._on_voice_settings_changed()
+541:             self._on_voice_settings_changed()

@@ -1,0 +1,30 @@
+35:     get_os_system,
+89: # ── System prompt ───────────────────────────────────────────────────
+90: def _load_system_prompt() -> str:
+599:             # Skip it and fall back to the system default (None).
+602:                 if platform.system() == "Windows":
+603:                     print("[JARVIS] ⚠️  audio_input_device=0 is the Windows Sound Mapper — using system default mic instead.")
+612:             dev_name = str(sd.query_devices(mic_dev or sd.default.device[0])["name"]) if mic_dev is not None else "system default"
+713:         # Device 0 or 2 on Windows are Sound Mappers (virtual) — use None for system default
+715:         if isinstance(spk_cfg, int) and spk_cfg in (0, 2) and _platform.system() == "Windows":
+716:             print("[JARVIS] ⚠️  audio_output_device is a Windows Sound Mapper — using system default speaker.")
+795:         sys_prompt = _load_system_prompt()
+809:             "system_prompt": "\n".join(parts),
+886:         self._history: list[Message] = []
+908:             # Build system message if first turn
+909:             if not self._history:
+910:                 sys_prompt = self._build_chat_system_prompt()
+911:                 self._history.append(Message(role="system", content=sys_prompt))
+914:             self._history.append(Message(role="user", content=text))
+918:                 messages=self._history,
+924:             # Add response to history
+925:             self._history.append(response)
+929:             # Keep history manageable
+930:             if len(self._history) > 50:
+931:                 self._history = [self._history[0]] + self._history[-30:]  # keep system + recent
+970:     def _build_chat_system_prompt(self) -> str:
+974:         sys_prompt = _load_system_prompt()
+1005:             if platform.system() == "Windows":
+1156:                             if isinstance(spk_cfg, int) and spk_cfg in (0, 2) and platform.system() == "Windows":
+1231:         system_prompt=_load_system_prompt(),
+1234:         os_system=cfg.get("os_system", "windows"),

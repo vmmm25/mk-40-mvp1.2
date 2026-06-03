@@ -1718,9 +1718,8 @@ class MainWindow(QMainWindow):
                             config_bar._lm_model_combo.setCurrentIndex(i)
                             break
                     config_bar._lm_model_combo.blockSignals(False)
-            # Trigger engine restart so the new model takes effect
-            if hasattr(self, '_on_provider_changed') and self._on_provider_changed:
-                self._on_provider_changed(provider)
+            # Avoid engine restart to keep chat history intact.
+            # The engine will dynamically pick up the new model on the next message.
 
     def _on_file_selected(self, path: str):
         self._current_file = path
