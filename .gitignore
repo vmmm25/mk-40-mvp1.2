@@ -87,3 +87,7 @@ pip-delete-this-directory.txt
 .DS_Store?
 ehthumbs.db
 Thumbs.db
+
+# --- Tests & Experimental ---
+test_*.py
+frontend/

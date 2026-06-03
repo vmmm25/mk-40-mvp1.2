@@ -390,8 +390,12 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
             audio_bytes = f.read()
             
         def run_gemini():
-            response = client.models.generate_content(
-                model="models/gemini-2.5-flash",
+            # Now unused, but we keep the logic structure
+            pass
+            
+        try:
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash",
                 contents=[
                     types.Part.from_bytes(
                         data=audio_bytes,
@@ -400,10 +404,7 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
                     "Transcribe este archivo de audio con la mayor precisión posible. Responde únicamente con el texto transcrito en el idioma original del hablante, sin añadir explicaciones, traducciones o metadatos."
                 ]
             )
-            return response.text.strip() if response.text else ""
-            
-        try:
-            raw_text = await asyncio.to_thread(run_gemini)
+            raw_text = response.text.strip() if response.text else ""
             return _clean_whisper_transcript(raw_text)
         except Exception as ge:
             print(f"[JARVIS] ⚠️ Gemini Cloud STT failed ({ge}). Falling back to local Whisper...")
@@ -490,40 +491,32 @@ async def _synthesize_speech_in_memory(text: str, cfg: dict) -> bytes | None:
             api_key=api_key,
             http_options={"api_version": "v1beta"},
         )
-        
-        def run_gemini():
-            try:
-                response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[f"Lee en voz alta de manera clara, natural y con buena entonación el siguiente texto: {text}"],
-                    config=types.GenerateContentConfig(
-                        response_modalities=["AUDIO"],
-                        speech_config=types.SpeechConfig(
-                            voice_config=types.VoiceConfig(
-                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                                    voice_name="Charon"  # Puck, Charon, Kore, Fenrir
-                                )
+        try:
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash-preview-tts",
+                contents=[f"Lee en voz alta de manera clara, natural y con buena entonación el siguiente texto: {text}"],
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name="Charon"  # Puck, Charon, Kore, Fenrir
                             )
                         )
                     )
                 )
-                audio_bytes = None
-                for candidate in getattr(response, "candidates", []):
-                    for part in getattr(candidate.content, "parts", []):
-                        if hasattr(part, "inline_data") and part.inline_data:
-                            audio_bytes = part.inline_data.data
-                            break
-                if audio_bytes:
-                    if audio_bytes.startswith(b"RIFF"):
-                        return audio_bytes
-                    # Gemini returns raw PCM; wrap it as WAV bytes
-                    return _pcm_to_wav_bytes(audio_bytes, sample_rate=24000)
-                raise ValueError("No audio bytes returned from Gemini API.")
-            except Exception as e:
-                raise e
-            
-        try:
-            return await asyncio.to_thread(run_gemini)
+            )
+            audio_bytes = None
+            for candidate in getattr(response, "candidates", []):
+                for part in getattr(candidate.content, "parts", []):
+                    if hasattr(part, "inline_data") and part.inline_data:
+                        audio_bytes = part.inline_data.data
+                        break
+            if audio_bytes:
+                if audio_bytes.startswith(b"RIFF"):
+                    return audio_bytes
+                return _pcm_to_wav_bytes(audio_bytes, sample_rate=24000)
+            return await _synthesize_with_piper_fallback(text, cfg, "No audio data returned")
         except Exception as ge:
             return await _synthesize_with_piper_fallback(text, cfg, str(ge))
 
