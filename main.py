@@ -1212,10 +1212,12 @@ def _build_provider_config() -> ProviderConfig:
     cfg = load_config()
     selected = cfg.get("selected_provider", "gemini")
 
-    api_key = cfg.get("gemini_api_key", "")
-    base_url = cfg.get("ollama_url", "http://localhost:11434")
+    api_key = ""
+    base_url = ""
 
-    if selected == "openrouter":
+    if selected == "gemini":
+        api_key = cfg.get("gemini_api_key", "")
+    elif selected == "openrouter":
         api_key = cfg.get("openrouter_api_key", "")
     elif selected == "ollama":
         base_url = cfg.get("ollama_url", "http://localhost:11434")
