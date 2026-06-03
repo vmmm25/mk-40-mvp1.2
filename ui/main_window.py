@@ -915,6 +915,10 @@ class MainWindow(QMainWindow):
                 set_model(old_model_id, old_provider)
         # Save new provider selection
         save_config({"selected_provider": provider})
+        if provider in ("ollama", "openrouter", "lmstudio"):
+            self._set_audio_engine("local", trigger_callback=False)
+        else:
+            self._set_audio_engine("gemini", trigger_callback=False)
         self._highlight_provider(provider)
         prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(provider, provider)
         self._provider_lbl.setText(f"◈  {prov_name}")
@@ -1473,7 +1477,7 @@ class MainWindow(QMainWindow):
         self._input.setText(cmd_prefix)
         self._input.setFocus()
         
-    def _set_audio_engine(self, mode: str):
+    def _set_audio_engine(self, mode: str, trigger_callback: bool = True):
         if mode == "gemini":
             save_config({"stt_engine": "gemini", "tts_engine": "gemini"})
             self._log.append_log("SYS: Motores de audio configurados a Gemini Cloud.")
@@ -1483,7 +1487,7 @@ class MainWindow(QMainWindow):
         
         self._update_audio_toggles()
         
-        if hasattr(self, '_on_provider_changed') and self._on_provider_changed:
+        if trigger_callback and hasattr(self, '_on_provider_changed') and self._on_provider_changed:
             cfg = load_config()
             provider = cfg.get("selected_provider", "ollama")
             self._on_provider_changed(provider)
