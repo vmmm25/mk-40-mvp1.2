@@ -514,6 +514,8 @@ async def _synthesize_speech_in_memory(text: str, cfg: dict) -> bytes | None:
                             audio_bytes = part.inline_data.data
                             break
                 if audio_bytes:
+                    if audio_bytes.startswith(b"RIFF"):
+                        return audio_bytes
                     # Gemini returns raw PCM; wrap it as WAV bytes
                     return _pcm_to_wav_bytes(audio_bytes, sample_rate=24000)
                 raise ValueError("No audio bytes returned from Gemini API.")
