@@ -31,6 +31,15 @@ El panel de configuración centralizado (ajustes de motor y voz) te permite acti
 | ![Ollama Config](assets/ollama_config.png) | ![LM Studio Config](assets/lmstudio_config.png) |
 | Gestión de modelos locales de Ollama con soporte de descargas (Pull), carga y parada de servicio. | Gestión mediante la CLI oficial de LM Studio (`lms`) con soporte de auto-inicio del servidor y carga dinámica. |
 
+### 🔊 Ajustes de Motor y Voz (Hardware, Whisper, Piper)
+
+Esta sección unifica la configuración de audio, transcripción local y síntesis de voz offline, además de controles de volumen y seguridad:
+
+| 🔊 Ajustes de Motor y Voz |
+|---|
+| ![Configuración de Voz](assets/voice_config.png) |
+| Permite seleccionar los dispositivos de audio (micrófono y altavoces), ajustar el volumen del sistema, configurar una contraseña de seguridad para acciones críticas y seleccionar los motores de entrada (STT Whisper) y salida (TTS Piper) con auto-guardado en tiempo real. |
+
 ---
 
 ## 🛠 Instalación Rápida (Click & Play)

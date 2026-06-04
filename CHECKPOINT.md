@@ -1,119 +1,64 @@
-# MARK XL — Session Checkpoint
+# 🧠 MARK XL — Checkpoint de Sesión
 
-> Actualizado: 2026-05-23  
-> Checkpoint anterior reemplazado con cambios completos
-
----
-
-## Goal
-Review, fix critical issues, and enhance the MARK XL (Mark 40) AI assistant project with:
-- UI configuration toolbar with brain icons
-- Ollama management panel (pull models, server up/down)
-- API key management (Gemini + OpenRouter) desde la UI
-- Audio settings (mic, speaker, volume)
-
-## Constraints & Preferences
-- "pon los accesos de los modelos en un apartado de configuracion que estara en la parte superior"
-- Brain icons: Gemini = celeste outline + white interior, Ollama = white, OpenRouter = dynamic color based on model company
-- "el primer boton(pull) sera un ollama pull modelo se hara un escript a comandos en la terminal para automatizar"
-- "antes del boton habra una fila desplegable en donde estaran los modelos de ollama"
-- "el segundo boton sera up server(ollama serve) y justo abajo estara down server"
-- "deja un acceso directo en el escritorio"
-- "en la pestaña de ajustes se vean una lista ordenada y clara de los comandos necesarios en una parte"
-- "el dropdown se actualiza con ollama list, para que le pogas un boton de recarga"
-- "ahora quiero quie le hagas lo mismo a ala api de gimini y a la api de openrouters" (UI para API keys)
-- "quiero que le des en la parte de ajustes un apartado a la configuracion de microfono y de altavoz ademas de un apartado para el volumen"
-- "quier que la ventana de configuracion tenga subventanas, como las ventanas de google"
+> **Actualizado:** 2026-06-04  
+> **Estado:** Completo / Limpieza de Repositorio realizada  
 
 ---
 
-## Progress
-
-### ✅ Done
-
-#### Core Fixes
-- **Security**: Removed hardcoded Gemini API key from `config/api_keys.json`, created `.gitignore`
-- **Tool map**: Wired `_get_tool_map()` with real action implementations (`main.py:934-957`)
-- **Face fallback**: Added fallback chain for missing `face.png` (`main.py:1025`)
-- **Version fix**: `setup.py:10` — "MARK XXV" → "MARK XL"
-- **Dependencies**: `requirements.txt` — added `aiohttp`, removed duplicate `Pillow`
-- **Async fix**: Made `ask_llm()` async, created `ask_llm_sync()` via thread+new event loop (`agent/llm_helper.py`)
-- **Sync/async dispatch**: `providers/base.py:123` — `execute_tool_call()` uses `iscoroutinefunction()`
-- **OpenRouter header**: Fixed `HTTP-Referer` (`providers/openrouter_provider.py`)
-- **Deduplication**: Removed duplicate `analyze_error()` in `agent/executor.py`
-- **Sync callers updated**: `agent/error_handler.py`, `agent/planner.py` use `ask_llm_sync`
-
-#### UI — Toolbar & Brain Icons
-- **BrainIcon widget**: Custom QPainter brain with per-provider color (Gemini=celeste, Ollama=white, OpenRouter=dynamic company color)
-- **ConfigToolbar**: 48px top bar with brain icons + status + gear toggle
-
-#### UI — Settings Panel (QTabWidget con 3 tabs estilo Google)
-- **🔑 API KEYS tab**:
-  - Gemini API Key input (password mode)
-  - OpenRouter API Key input (password mode)
-  - "💾 SAVE KEYS" button → escribe a `config/api_keys.json`
-- **🔊 AUDIO tab**:
-  - Microphone dropdown (poblado desde `sounddevice.query_devices()`)
-  - Speaker dropdown
-  - Volume slider (0-100%) persistido en config
-  - Guardado automático al cambiar dispositivo
-- **🤖 OLLAMA tab** (split horizontal):
-  - **Left**: 7 comandos de referencia de Ollama
-  - **Right**: 
-    - Model dropdown con live `ollama list` + ↻ reload button
-    - PULL MODEL → abre terminal con `ollama pull <modelo>`
-    - UP SERVER → abre terminal con `ollama serve`
-    - DOWN SERVER → taskkill/pkill ollama
-    - Server status indicator (RUNNING/STOPPED)
-
-#### Audio Integration
-- `main.py`: `sd.InputStream` ahora usa `audio_input_device` del config
-- `main.py`: `sd.RawOutputStream` ahora usa `audio_output_device` del config
-- `main.py`: Volume scaling aplicado (multiplica samples int16 por gain factor)
-- `config_manager.py`: defaults para `audio_input_device`, `audio_output_device`, `audio_volume`
-
-#### Desktop
-- **Desktop shortcut**: Created `C:\Users\lolpl\Desktop\MARK XL.lnk`
-
-#### Verification
-- **Syntax validation**: `ui.py`, `main.py`, `memory/config_manager.py` pasan `ast.parse()`
-
-### 🔄 In Progress
-- *(none)*
-
-### ❌ Blocked
-- *(none)*
+## 🎯 Objetivo General
+Revisar, corregir problemas críticos y mejorar el asistente virtual MARK XL (J.A.R.V.I.S. Mark-40) con:
+- Barra de herramientas superior con iconos de "cerebro" para proveedores de LLM.
+- Panel de configuración centralizado estilo Google (con pestañas).
+- Integración local completa con Ollama y LM Studio (vía CLI `lms` oficial).
+- Gestión de API Keys para Gemini y OpenRouter desde la interfaz gráfica.
+- Configuración de dispositivos de audio (micrófono, altavoces, volumen) y seguridad.
 
 ---
 
-## Key Decisions
-- `ask_llm()` made async; `ask_llm_sync()` uses `threading.Thread` + `asyncio.new_event_loop()`
-- `_wrap(fn)` pattern wraps sync action functions for async-compatible dispatch
-- Ollama commands open new terminal windows via `subprocess.Popen` for visible feedback
-- Brain icon drawn with QPainter (overlapping ellipses + brainstem + wrinkle arcs)
-- Model dropdown populated via `ollama list` at runtime with hardcoded fallback
-- Settings panel uses **QTabWidget** con 3 tabs para organización tipo Google
-- API keys saved to same `config/api_keys.json` via `save_config()`
-- Volume scaling hecho vía `array('h', ...)` para multiplicar samples int16 sin numpy
-- Audio devices guardados por ID numérico de sounddevice; se re-seleccionan al abrir settings
+## 📋 Progreso
+
+### ✅ Completado
+
+#### 🖥️ Integración de Motores Locales y Nube
+- **LM Studio (`lms` CLI):** Integración completa para levantar/detener el servidor daemon de LM Studio y cargar/descargar modelos de memoria RAM en Windows automáticamente de forma asíncrona.
+- **Ollama CLI:** Integración con `ollama serve` y `ollama pull <modelo>` mediante terminales visibles para el usuario.
+- **Auto-Inicio Inteligente:** Al seleccionar y activar un motor local (Ollama / LM Studio), la aplicación levanta el servidor y precarga el modelo configurado en segundo plano de manera automática.
+- **Gemini & OpenRouter:** Gestión segura de API keys escritas y leídas desde `config/api_keys.json`, evitando keys hardcodeadas.
+
+#### 🎨 Interfaz de Usuario (UI) & UX Cyberpunk
+- **Pestaña de Ajustes Centralizada (Google Style):** Organización clara en tres subventanas:
+  1. **Ajustes de Motor y Voz:** Dispositivos de audio, volumen del sistema, contraseña de seguridad y selección de motores STT (Whisper) y TTS (Piper).
+  2. **Configuración de Modelos (LLM):** Pestañas independientes para Gemini (GEM), OpenRouter (OR), Ollama (OLL) y LM Studio (LM).
+  3. **Seguridad / API Keys:** Gestión centralizada de credenciales.
+- **Auto-Guardado Inteligente:** Eliminación de botones redundantes de guardado individual. Los cambios en comboboxes, sliders y rutas de ejecutables se guardan y aplican automáticamente en tiempo real.
+- **Optimización de Logs:** Se optimizó el polling en segundo plano del estado de los servidores de 3 s a 30 s para evitar la saturación de logs cuando los servicios no están activos.
+- **Iconos de Cerebro Interactivos:** Icono dibujado en QPainter con colores según proveedor (Gemini = celeste, Ollama = blanco, OpenRouter = color dinámico de la compañía del modelo).
+
+#### 🔊 Audio & Voz Modular
+- **Dispositivos de Entrada/Salida:** Menús desplegables que obtienen dinámicamente el hardware mediante `sounddevice.query_devices()`.
+- **Control de Volumen:** Barra deslizadora funcional que aplica escalado de samples de audio en tiempo real sin dependencias externas pesadas.
+- **Motores STT/TTS:** Enrutamiento modular para Whisper (local/nube) y Piper (local/nube).
+
+#### 🚀 Limpieza y Estructura del Proyecto
+- **Eliminación de Obsoletos:** Se eliminaron los borradores de planificación antiguos (`PLAN_IMPLEMENTACION.md` y `PLAN_REFACTOR.md`) para mantener limpio el directorio raíz.
+- **Documentación Visual:** Actualización de `readme.md` con capturas de pantalla reales del HUD y de los paneles de configuración y voz.
+- **Instalación Directa:** `Run_JARVIS.bat` automatiza la creación del entorno virtual `.venv` y la instalación de dependencias requeridas (`playwright`, `psutil`, `requests`, `sounddevice`, etc.).
 
 ---
 
-## Relevant Files
-| File | Lines | Description |
-|---|---|---|
-| `ui.py` | ~2500 | BrainIcon, ConfigToolbar (3 tabs), MainWindow |
-| `main.py` | ~1086 | Audio device config + volume scaling |
-| `memory/config_manager.py` | ~155 | Defaults for audio keys |
-| `agent/llm_helper.py` | — | `ask_llm()` async + `ask_llm_sync()` |
-| `agent/executor.py` | — | Uses `ask_llm_sync` |
-| `agent/error_handler.py` | — | Uses `ask_llm_sync` |
-| `agent/planner.py` | — | Uses `ask_llm_sync` |
-| `providers/base.py` | — | `execute_tool_call()` sync/async dispatch |
-| `providers/openrouter_provider.py` | — | Fixed HTTP-Referer |
-| `config/api_keys.json` | — | Provider config, secrets stored |
-| `.gitignore` | — | Git exclusion rules |
-| `setup.py` | — | Version reference fixed |
-| `requirements.txt` | — | Dependencies updated |
+## 🛠️ Archivos Relevantes
 
+| Archivo | Descripción |
+|---|---|
+| [ui.py](file:///c:/Users/lolpl/Desktop/02_Proyectos_Dev/MARK-39_AI/update-mk40/ui.py) | Componentes principales de la UI, barra de herramientas de cerebros y pestañas de configuración. |
+| [main.py](file:///c:/Users/lolpl/Desktop/02_Proyectos_Dev/MARK-39_AI/update-mk40/main.py) | Punto de entrada del asistente, procesamiento y escalado de volumen de audio. |
+| [lmstudio_control.py](file:///c:/Users/lolpl/Desktop/02_Proyectos_Dev/MARK-39_AI/update-mk40/lmstudio_control.py) | Controlador asíncrono para la CLI oficial de LM Studio (`lms`). |
+| [readme.md](file:///c:/Users/lolpl/Desktop/02_Proyectos_Dev/MARK-39_AI/update-mk40/readme.md) | Documentación oficial del proyecto con la nueva guía visual y changelog. |
+| [MAINTENANCE_GUIDE.md](file:///c:/Users/lolpl/Desktop/02_Proyectos_Dev/MARK-39_AI/update-mk40/MAINTENANCE_GUIDE.md) | Guía de mantenimiento y reglas de desarrollo para colaboradores. |
 
+---
+
+## 🔒 Decisiones de Diseño Clave
+1. **Asincronía Total en CLI:** Todos los comandos de CLI (`ollama`, `lms`) se ejecutan asíncronamente en subprocesos para no congelar la UI de PyQt6.
+2. **Auto-Guardado Activo:** Todo cambio de configuración se persiste automáticamente al perder el foco o cambiar el valor, mejorando la UX cyberpunk.
+3. **Escalado de Volumen Seguro:** Multiplicación de samples de audio directa en arrays `int16` para evitar el uso obligatorio de `numpy` en entornos ligeros.
