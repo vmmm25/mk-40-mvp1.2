@@ -4,7 +4,8 @@
 
 # --- Secrets & API Keys ---
 # Local keys and configuration profiles containing active API tokens.
-config/api_keys.json
+config/*.json
+!config/default*.json
 .env
 .env.local
 .env.development
@@ -76,6 +77,8 @@ pip-delete-this-directory.txt
 .opencode/
 .pytest_cache/
 .pytest/
+htmlcov/
+.coverage
 
 # --- IDEs & OS Files ---
 # Visual Studio Code, PyCharm, and system temporary files.

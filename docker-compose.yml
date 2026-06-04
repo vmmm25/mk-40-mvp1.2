@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  jarvis:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - .:/app
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ./memory:/app/memory
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=${DISPLAY}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+    devices:
+      - "/dev/snd:/dev/snd"
+    group_add:
+      - audio
+    stdin_open: true
+    tty: true
