@@ -61,6 +61,9 @@ Esta sección unifica la configuración de audio, transcripción local y síntes
 
 ### 🐧 Linux Ubuntu / Debian (Línea de Comandos)
 
+> [!IMPORTANT]
+> **Nota de Entorno:** El soporte para Linux nativo está enfocado a entornos de **pruebas y desarrollo**. Para despliegues generales o entornos estables, se recomienda utilizar **WSL (Windows Subsystem for Linux)** en Windows, o desplegar mediante **Docker** (utilizando el `Dockerfile` y `docker-compose.yml` provistos en el repositorio).
+
 1. **Instala las dependencias necesarias del sistema:**
    Para soportar audio local (Whisper, Piper), interfaz gráfica (PyQt6) y controladores multimedia, ejecuta:
    ```bash
