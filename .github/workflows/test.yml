@@ -1,0 +1,14 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: pip install pytest pytest-asyncio pytest-mock pytest-cov
+      - run: python -m pytest tests/ -v --tb=short --cov=.
+      - run: python -m flake8 . --count --max-line-length=120 --statistics

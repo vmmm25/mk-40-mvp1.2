@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 """
 file_processor.py — JARVIS Universal File Processor
 
@@ -858,5 +861,5 @@ def file_processor(parameters: dict, player=None, speak=None) -> str:
         return result or "Done."
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        logger.exception("Exception occurred")
         return f"Processing failed: {e}"

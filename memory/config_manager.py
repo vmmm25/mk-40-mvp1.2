@@ -78,6 +78,12 @@ def save_config(data: dict) -> None:
         except Exception:
             current = {}
 
+    from core.crypto import encrypt
+    for key_field in ("gemini_api_key", "openrouter_api_key"):
+        if key_field in data and data[key_field]:
+            if not data[key_field].startswith("gAAAAA"):
+                data[key_field] = encrypt(data[key_field])
+
     current.update(data)
 
     CONFIG_FILE.write_text(
@@ -107,6 +113,17 @@ def load_config() -> dict:
         data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
         merged = dict(DEFAULT_CONFIG)
         merged.update(data)
+
+        from core.crypto import decrypt
+        for key_field in ("gemini_api_key", "openrouter_api_key"):
+            if key_field in merged and merged[key_field]:
+                try:
+                    decrypted = decrypt(merged[key_field])
+                    if decrypted:
+                        merged[key_field] = decrypted
+                except Exception:
+                    pass
+
         _config_cache = merged
         _cache_time = current_time
         return merged
