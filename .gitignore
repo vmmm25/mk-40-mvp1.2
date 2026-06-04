@@ -94,3 +94,8 @@ Thumbs.db
 # --- Tests & Experimental ---
 test_*.py
 frontend/
+
+# --- Database & Scripts ---
+rag/db/
+scripts/migrate_tools.py
+

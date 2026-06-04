@@ -11,7 +11,7 @@ from google.genai import types
 from memory.memory_manager import load_memory, update_memory, format_memory_for_prompt
 from memory.config_manager import load_config
 from tools.declarations import TOOL_DECLARATIONS
-from tools.handlers import TOOL_IMPLEMENTATIONS
+from tools import TOOL_IMPLEMENTATIONS
 from engine.events import engine_stop
 from engine.audio import find_fallback_device
 

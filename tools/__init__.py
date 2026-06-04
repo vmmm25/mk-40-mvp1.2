@@ -1,30 +1,21 @@
 """JARVIS Tool System — Registry + backwards-compatible exports.
 
-This module initializes the ToolRegistry and registers all existing
-handler functions from handlers.py for full backward compatibility.
-New tools should subclass BaseTool and be auto-discovered.
-
-Usage:
-    from tools import TOOL_DECLARATIONS, TOOL_IMPLEMENTATIONS
-    from tools import registry
+This module initializes the ToolRegistry and registers all tool classes
+from tools.chat_tools for full backward compatibility.
 """
 import logging
 
 from tools.registry import ToolRegistry
-from tools.handlers import TOOL_IMPLEMENTATIONS as _LEGACY_IMPLS
+from tools.chat_tools import ALL_TOOLS
 
 logger = logging.getLogger(__name__)
 
 # ── Create global registry ──
 registry = ToolRegistry()
 
-# ── Register all legacy handlers ──
-for name, handler in _LEGACY_IMPLS.items():
-    registry.register_handler(name, handler)
-
-# ── Auto-discover BaseTool subclasses (future) ──
-# When tools are migrated to BaseTool classes, they will be
-# discovered automatically here via pkgutil.walk_packages.
+# ── Register all tools ──
+for tool in ALL_TOOLS:
+    registry.register(tool.__class__)
 
 # ── Backwards-compatible exports ──
 from tools.declarations import TOOL_DECLARATIONS  # noqa: F401, E402
