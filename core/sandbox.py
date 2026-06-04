@@ -10,6 +10,7 @@ import asyncio
 import logging
 import os
 import shutil
+import sys
 import tempfile
 import textwrap
 from pathlib import Path
@@ -101,7 +102,11 @@ async def run_python(
                 proc.communicate(), timeout=timeout
             )
         except asyncio.TimeoutError:
-            proc.kill()
+            if os.name == "nt":
+                import subprocess
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                proc.kill()
             await proc.wait()
             return SandboxResult(False, "", "Timed out", -1, timed_out=True)
 
@@ -205,7 +210,11 @@ async def run_shell(
             proc.communicate(), timeout=timeout
         )
     except asyncio.TimeoutError:
-        proc.kill()
+        if os.name == "nt":
+            import subprocess
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            proc.kill()
         await proc.wait()
         return SandboxResult(False, "", "Timed out", -1, timed_out=True)
 

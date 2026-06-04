@@ -91,14 +91,14 @@
 main.py
   ├── providers/__init__.py     → providers/base.py → core/cache.py, core/crypto.py
   ├── tools/declarations.py     → (solo datos, sin imports)
-  ├── tools/handlers.py         → actions/*, services/*, rag/*, agent/*
-  ├── ui/__init__.py            → ui/main_window.py → ui/config_toolbar.py, ui/wave_canvas.py
+  ├── tools/registry.py         → tools/chat_tools/* (clases heredando de BaseTool)
+  ├── tools/chat_tools/*        → actions/*, services/*, rag/*, agent/*
+  ├── ui/__init__.py            → ui/main_window.py → ui/wave_canvas.py
   ├── memory/config_manager.py  → core/crypto.py
   └── memory/memory_manager.py  → (solo json)
 
-CUIDADO: handlers.py importa ~20 módulos. Es el cuello de botella.
-CAMBIO en actions/* → puede romper handlers.py
-CAMBIO en services/* → puede romper handlers.py
+CUIDADO: El registro de herramientas dinámico en registry.py carga automáticamente cada clase desde tools/chat_tools/.
+CAMBIO en actions/* o services/* → requiere actualizar/verificar la clase correspondiente en tools/chat_tools/.
 ```
 
 ### Reglas de Importación
@@ -189,7 +189,8 @@ WORKFLOW_ORDER:
 
 CRITICAL_FILES (no modificar sin permiso explícito):
 - tools/declarations.py → rompe tool definitions de todos los providers
-- tools/handlers.py → rompe tool execution
+- tools/registry.py → rompe la carga automática y ejecución de tools
+- tools/chat_tools/ → contiene las implementaciones individuales de tools
 - main.py → rompe engine lifecycle
 - ui/__init__.py → rompe import de toda la UI
 - providers/__init__.py → rompe registro de providers
@@ -502,29 +503,51 @@ import json
 api_key = json.loads(open("config/api_keys.json").read())["gemini_api_key"]
 ```
 
-### Manejo de Errores Consistente
+### Patrón de Tool / Herramienta (clase heredada de BaseTool)
+
+Todas las herramientas se definen en clases independientes dentro de `tools/chat_tools/` y heredan de `BaseTool`.
 
 ```python
-# tools/handlers.py — patrón de handler:
-def handle_algo(args: dict, ui: Any) -> str:
-    """Siempre devolver string. Nunca lanzar excepción sin capturar."""
-    try:
-        # Validar args
-        param = args.get("param")
-        if not param:
-            return "Parámetro 'param' requerido."
-        
-        # Ejecutar
-        result = servicio.execute(param=param)
-        
-        # Devolver resultado formateado
-        if result.get("success"):
-            return f"Operación exitosa: {result['data']}"
-        return f"Error: {result.get('error', 'desconocido')}"
-        
-    except Exception as e:
-        logger.exception("Error en handle_algo")
-        return f"Error inesperado: {e}"
+# tools/chat_tools/mi_herramienta_tool.py
+import logging
+from typing import Any
+from tools.base import BaseTool
+from services.mi_servicio.mi_servicio_client import MiServicioClient
+
+logger = logging.getLogger(__name__)
+
+class MiHerramientaTool(BaseTool):
+    name = "mi_herramienta"
+    description = "Descripción clara de lo que hace la herramienta."
+    # Los parámetros deben coincidir exactamente con tools/declarations.py
+    parameters = {
+        "type": "OBJECT",
+        "properties": {
+            "param": {"type": "STRING", "description": "Parámetro requerido"}
+        },
+        "required": ["param"]
+    }
+
+    def execute(self, args: dict, ui: Any) -> str:
+        """Siempre devolver string. Nunca lanzar excepción sin capturar."""
+        try:
+            # Validar args
+            param = args.get("param")
+            if not param:
+                return "Parámetro 'param' requerido."
+
+            # Ejecutar lógica a través de un servicio
+            servicio = MiServicioClient()
+            result = servicio.execute(param=param)
+
+            # Devolver resultado formateado para el modelo
+            if result.get("success"):
+                return f"Operación exitosa: {result['data']}"
+            return f"Error: {result.get('error', 'desconocido')}"
+
+        except Exception as e:
+            logger.exception("Error inesperado en MiHerramientaTool")
+            return f"Error inesperado: {e}"
 ```
 
 ---
@@ -613,7 +636,7 @@ python -m pytest tests/ -v --tb=short -q
 ```
 ERROR "ModuleNotFoundError: No module named 'services'"
     → Verificar services/__init__.py existe
-    → Verificar imports en handlers.py
+    → Verificar imports en la tool correspondiente en tools/chat_tools/
 
 ERROR "Tool 'X' failed: ..."
     → Verificar TOOL_DECLARATIONS tiene la tool
