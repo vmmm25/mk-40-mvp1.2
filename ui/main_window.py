@@ -166,7 +166,7 @@ class MainWindow(QMainWindow):
             self._set_audio_engine("local", trigger_callback=False)
         else:
             self._set_audio_engine("gemini", trigger_callback=False)
-        self._highlight_provider(provider)
+        self._update_llm_ui()
         prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(provider, provider)
         self._provider_lbl.setText(f"◈  {prov_name}")
         # Update model combo for the new provider
@@ -182,11 +182,18 @@ class MainWindow(QMainWindow):
     def _toggle_llm_state(self):
         self._llm_active = not self._llm_active
         save_config({"llm_active": self._llm_active})
-        self._update_llm_ui()
+        if not self._llm_active:
+            # Switch to gemini automatically
+            self._switch_provider("gemini")
+        else:
+            self._update_llm_ui()
         state_str = "ACTIVATED" if self._llm_active else "DEACTIVATED"
         self._log.append_log(f"SYS: LLM service has been {state_str}.")
 
     def _update_llm_ui(self):
+        cfg = load_config()
+        selected_provider = cfg.get("selected_provider", "gemini")
+        
         if self._llm_active:
             self._llm_toggle_btn.setText("● LLM ONLINE")
             self._llm_toggle_btn.setStyleSheet(f"""
@@ -202,6 +209,12 @@ class MainWindow(QMainWindow):
                     f"color: {C.GREEN}; background: {C.PANEL2};"
                     f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
                 )
+            
+            # Enable buttons and restore highlight
+            for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
+                btn.setEnabled(True)
+                btn.setToolTip("Seleccionar proveedor")
+            self._highlight_provider(selected_provider)
         else:
             self._llm_toggle_btn.setText("○ LLM OFFLINE")
             self._llm_toggle_btn.setStyleSheet(f"""
@@ -217,6 +230,20 @@ class MainWindow(QMainWindow):
                     f"color: {C.RED}; background: {C.PANEL2};"
                     f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
                 )
+            
+            # Highlight gemini (which is active)
+            self._highlight_provider("gemini")
+            
+            # Disable LLM buttons and apply gray out style
+            for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
+                btn.setEnabled(False)
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: #050b0d; color: {C.TEXT_DIM};
+                        border: 1px solid {C.BORDER_A}; border-radius: 3px;
+                    }}
+                """)
+                btn.setToolTip("Activa LLM ONLINE para usar otros proveedores")
 
     def _highlight_provider(self, provider: str):
         """Highlight the active provider button."""

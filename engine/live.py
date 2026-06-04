@@ -92,10 +92,6 @@ class JarvisLive:
     def _on_text_command(self, text: str):
         if not self._loop or not self.session or engine_stop.is_set():
             return
-        cfg = load_config()
-        if not cfg.get("llm_active", True):
-            self.ui.write_log("SYS: El motor LLM está desactivado. Actívalo para enviar comandos.")
-            return
         asyncio.run_coroutine_threadsafe(
             self.session.send_client_content(
                 turns={"parts": [{"text": text}]},
@@ -125,9 +121,6 @@ class JarvisLive:
         loop = asyncio.get_event_loop()
 
         def callback(indata, frames, time_info, status):
-            cfg = load_config()
-            if not cfg.get("llm_active", True):
-                return
             with self._speaking_lock:
                 jarvis_speaking = self._is_speaking
             if not jarvis_speaking and not getattr(self.ui, "muted", False):

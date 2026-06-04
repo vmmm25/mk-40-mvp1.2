@@ -43,7 +43,8 @@ class JarvisChat:
     async def _process_message(self, text: str, from_voice: bool = False) -> str | None:
         """Process a user message through the chat provider."""
         cfg = load_config()
-        if not cfg.get("llm_active", True):
+        selected_prov = cfg.get("selected_provider", "gemini")
+        if selected_prov != "gemini" and not cfg.get("llm_active", True):
             self.ui.write_log("SYS: El motor LLM está desactivado. Actívalo para enviar comandos.")
             if not getattr(self.ui, "muted", False):
                 self.ui.set_state("LISTENING")
@@ -267,7 +268,8 @@ class JarvisChat:
             return
 
         cfg = load_config()
-        if not cfg.get("llm_active", True):
+        selected_prov = cfg.get("selected_provider", "gemini")
+        if selected_prov != "gemini" and not cfg.get("llm_active", True):
             return
 
         self.ui.set_state("THINKING")
