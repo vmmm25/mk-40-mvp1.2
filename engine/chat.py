@@ -42,6 +42,15 @@ class JarvisChat:
 
     async def _process_message(self, text: str, from_voice: bool = False) -> str | None:
         """Process a user message through the chat provider."""
+        cfg = load_config()
+        if not cfg.get("llm_active", True):
+            self.ui.write_log("SYS: El motor LLM está desactivado. Actívalo para enviar comandos.")
+            if not getattr(self.ui, "muted", False):
+                self.ui.set_state("LISTENING")
+            else:
+                self.ui.set_state("MUTED")
+            return None
+
         self.ui.set_state("THINKING")
         if not from_voice:
             self.ui.write_log(f"You: {text}")
@@ -255,6 +264,10 @@ class JarvisChat:
 
     async def _handle_voice_turn(self, speech_data: bytes):
         if not speech_data or len(speech_data) < 3200:
+            return
+
+        cfg = load_config()
+        if not cfg.get("llm_active", True):
             return
 
         self.ui.set_state("THINKING")

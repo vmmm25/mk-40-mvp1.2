@@ -94,6 +94,8 @@ class MainWindow(QMainWindow):
         self.on_provider_changed = None
         self._muted              = False
         self._current_file: str | None = None
+        cfg = load_config()
+        self._llm_active = cfg.get("llm_active", True)
 
         central = QWidget()
         central.setStyleSheet(f"background: {C.BG};")
@@ -113,6 +115,8 @@ class MainWindow(QMainWindow):
 
         self._main_content = self._build_main_content(face_path)
         body.addWidget(self._main_content, stretch=1)
+
+        self._update_llm_ui()
 
         root.addLayout(body, stretch=1)
         root.addWidget(self._build_footer())
@@ -174,6 +178,45 @@ class MainWindow(QMainWindow):
         # Notify the backend if it's connected
         if hasattr(self, '_on_provider_changed') and self._on_provider_changed:
             self._on_provider_changed(provider)
+
+    def _toggle_llm_state(self):
+        self._llm_active = not self._llm_active
+        save_config({"llm_active": self._llm_active})
+        self._update_llm_ui()
+        state_str = "ACTIVATED" if self._llm_active else "DEACTIVATED"
+        self._log.append_log(f"SYS: LLM service has been {state_str}.")
+
+    def _update_llm_ui(self):
+        if self._llm_active:
+            self._llm_toggle_btn.setText("● LLM ONLINE")
+            self._llm_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: #001a0d; color: {C.GREEN};
+                    border: 1px solid {C.GREEN}; border-radius: 3px; padding: 0px 8px;
+                }}
+                QPushButton:hover {{ background: {C.GREEN}; color: #000; }}
+            """)
+            if hasattr(self, "_ai_core_lbl"):
+                self._ai_core_lbl.setText("AI CORE\nACTIVE")
+                self._ai_core_lbl.setStyleSheet(
+                    f"color: {C.GREEN}; background: {C.PANEL2};"
+                    f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
+                )
+        else:
+            self._llm_toggle_btn.setText("○ LLM OFFLINE")
+            self._llm_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: #1a0005; color: {C.RED};
+                    border: 1px solid {C.RED}; border-radius: 3px; padding: 0px 8px;
+                }}
+                QPushButton:hover {{ background: {C.RED}; color: #fff; }}
+            """)
+            if hasattr(self, "_ai_core_lbl"):
+                self._ai_core_lbl.setText("AI CORE\nINACTIVE")
+                self._ai_core_lbl.setStyleSheet(
+                    f"color: {C.RED}; background: {C.PANEL2};"
+                    f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
+                )
 
     def _highlight_provider(self, provider: str):
         """Highlight the active provider button."""
@@ -364,8 +407,16 @@ class MainWindow(QMainWindow):
         lay.addWidget(info_panel)
         lay.addStretch()
 
+        self._ai_core_lbl = QLabel("AI CORE\nACTIVE")
+        self._ai_core_lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._ai_core_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._ai_core_lbl.setStyleSheet(
+            f"color: {C.GREEN}; background: {C.PANEL2};"
+            f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
+        )
+        lay.addWidget(self._ai_core_lbl)
+
         for txt, col in [
-            ("AI CORE\nACTIVE",     C.GREEN),
             ("SEC\nCLEARED",        C.PRI),
             ("PROTOCOL\nXXXVIII",   C.TEXT_DIM),
         ]:
@@ -587,6 +638,16 @@ class MainWindow(QMainWindow):
                 QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
             """)
             prov_row.addWidget(btn)
+
+        prov_row.addSpacing(12)
+
+        self._llm_toggle_btn = QPushButton()
+        self._llm_toggle_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._llm_toggle_btn.setFixedHeight(28)
+        self._llm_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._llm_toggle_btn.clicked.connect(self._toggle_llm_state)
+        prov_row.addWidget(self._llm_toggle_btn)
+
         chat_col.addLayout(prov_row)
 
         model_row = QHBoxLayout(); model_row.setSpacing(8)

@@ -30,7 +30,7 @@ from lmstudio_control import (
 _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 
 
-# ÔöÇÔöÇ Shared OpenRouter free-model catalogue ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# ── Shared OpenRouter free-model catalogue ─────────────────────────────────
 # Single source of truth used by BOTH the config tab and the right-panel combo.
 # Tuple layout: (model_id, display_name)
 _OR_FREE_MODELS: list[tuple[str, str]] = [
@@ -91,7 +91,7 @@ def _populate_or_combo(combo: "QComboBox", saved_model: str) -> None:
     combo.blockSignals(False)
 
 
-# ÔöÇÔöÇ Shared style sheets ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# ── Shared style sheets ──────────────────────────────────────────
 _INPUT_STYLE = (
     "QLineEdit { background: #000d14; color: #d8f8ff; border: 1px solid #0d3347;"
     " border-radius: 3px; padding: 2px 6px; }"
@@ -170,16 +170,16 @@ class ConfigToolbar(QWidget):
         self._main_layout.setContentsMargins(0, 0, 0, 0)
         self._main_layout.setSpacing(0)
 
-        # ÔöÇÔöÇ Settings Tab Widget (Pure Static Panel) ÔöÇÔöÇ
+        # ── Settings Tab Widget (Pure Static Panel) ──
         self._settings_tabs = QTabWidget()
         self._settings_tabs.setStyleSheet(_TAB_STYLE)
         
         # We use compact labels to fit beautifully in 340px
-        self._settings_tabs.addTab(self._build_gemini_tab(), "­ƒºá GEM")
-        self._settings_tabs.addTab(self._build_openrouter_tab(), "­ƒöù OR")
-        self._settings_tabs.addTab(self._build_ollama_tab(), "­ƒñû OLL")
-        self._settings_tabs.addTab(self._build_lmstudio_tab(), "­ƒƒá LM")
-        self._settings_tabs.addTab(self._build_audio_tab(), "­ƒÄÖ VOZ")
+        self._settings_tabs.addTab(self._build_gemini_tab(), "🔑 GEM")
+        self._settings_tabs.addTab(self._build_openrouter_tab(), "🌐 OR")
+        self._settings_tabs.addTab(self._build_ollama_tab(), "🦙 OLL")
+        self._settings_tabs.addTab(self._build_lmstudio_tab(), "💻 LM")
+        self._settings_tabs.addTab(self._build_audio_tab(), "🎙 VOZ")
         
         self._main_layout.addWidget(self._settings_tabs)
 
@@ -191,7 +191,7 @@ class ConfigToolbar(QWidget):
         """Emit provider signal, compatibility fallback."""
         self.provider_changed.emit(provider)
 
-    # ÔöÇÔöÇ Tab: Gemini ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    # ── Tab: Gemini ────────────────────────────────────────────────
     def _build_gemini_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
         lay.setContentsMargins(60, 20, 60, 20)
@@ -228,7 +228,7 @@ class ConfigToolbar(QWidget):
         lay.addStretch()
         return w
 
-    # ÔöÇÔöÇ Tab: OpenRouter ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    # ── Tab: OpenRouter ────────────────────────────────────────────
     def _build_openrouter_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
         lay.setContentsMargins(60, 10, 60, 10)
@@ -287,7 +287,7 @@ class ConfigToolbar(QWidget):
         model_id = self._or_model_combo.currentData()
         if model_id:
             set_model(model_id, "openrouter")
-            self._or_model_status.setText(f"Ô£à Guardado: {model_id.split('/')[1].split(':')[0]}")
+            self._or_model_status.setText(f"✓ Guardado: {model_id.split('/')[1].split(':')[0]}")
             self._or_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Keep the right-panel combo in sync
             right_combo = self._main_win._right_model_combo
@@ -298,10 +298,10 @@ class ConfigToolbar(QWidget):
             if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
-            self._or_model_status.setText("ÔØî No se seleccion├│ modelo")
+            self._or_model_status.setText("❌ No se seleccionó modelo")
             self._or_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
-    # ÔöÇÔöÇ Tab: Audio Settings ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    # ── Tab: Audio Settings ──────────────────────────────────────────
     def _build_audio_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
         lay.setContentsMargins(20, 10, 20, 10)
@@ -540,7 +540,7 @@ class ConfigToolbar(QWidget):
             self._piper_model_edit.setText(os.path.normpath(file_path))
             self._on_voice_settings_changed()
 
-    # ÔöÇÔöÇ Tab: Ollama Tools + Commands ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    # ── Tab: Ollama Tools + Commands ─────────────────────────────────
     def _build_ollama_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
         lay.setContentsMargins(50, 10, 50, 10)
@@ -631,7 +631,7 @@ class ConfigToolbar(QWidget):
         self._check_server_status()
         return w
 
-    # ÔöÇÔöÇ Tab: LM Studio ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    # ── Tab: LM Studio ───────────────────────────────────────────────
     def _build_lmstudio_tab(self) -> QWidget:
         w = QWidget(); lay = QVBoxLayout(w)
         lay.setContentsMargins(40, 10, 40, 10)
@@ -730,20 +730,20 @@ class ConfigToolbar(QWidget):
         """Find LM Studio installation and update UI."""
         path = find_lmstudio_path()
         if path:
-            self._lm_path_lbl.setText(f"Ô£à Instalado en: {path.parent}")
+            self._lm_path_lbl.setText(f"✓ Instalado en: {path.parent}")
             self._lm_path_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         else:
-            self._lm_path_lbl.setText("ÔÜá´©Å LM Studio no encontrado. Inst├ílalo desde lmstudio.ai")
+            self._lm_path_lbl.setText("⚠️ LM Studio no encontrado. Instálalo desde lmstudio.ai")
             self._lm_path_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _refresh_lmstudio_status(self):
         """Check LM Studio server status and update UI."""
         running = is_server_running()
         if running:
-            self._lm_server_lbl.setText("ÔùÅ  Server: RUNNING")
+            self._lm_server_lbl.setText("●  Server: RUNNING")
             self._lm_server_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent; padding: 2px 0;")
         else:
-            self._lm_server_lbl.setText("ÔùÅ  Server: OFFLINE")
+            self._lm_server_lbl.setText("●  Server: OFFLINE")
             self._lm_server_lbl.setStyleSheet(f"color: {C.RED}; background: transparent; padding: 2px 0;")
 
     def _populate_lm_models(self):
@@ -774,10 +774,10 @@ class ConfigToolbar(QWidget):
         # Update status tooltip
         count = self._lm_model_combo.count()
         if count > 0:
-            self._lm_model_status.setText(f"­ƒôª {count} modelo(s) encontrado(s)")
+            self._lm_model_status.setText(f"📦 {count} modelo(s) encontrado(s)")
             self._lm_model_status.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
         else:
-            self._lm_model_status.setText("ÔÜá´©Å No se encontraron modelos locales")
+            self._lm_model_status.setText("⚠️ No se encontraron modelos locales")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_lm_model(self):
@@ -786,7 +786,7 @@ class ConfigToolbar(QWidget):
         if model_id:
             set_model(model_id, "lmstudio")
             short_name = model_id.split("/")[-1].split(":")[0]
-            self._lm_model_status.setText(f"Ô£à Guardado: {short_name}")
+            self._lm_model_status.setText(f"✓ Guardado: {short_name}")
             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Keep right-panel combo in sync
             right_combo = self._main_win._right_model_combo
@@ -875,7 +875,7 @@ class ConfigToolbar(QWidget):
         url = self._lm_url_input.text().strip()
         if url:
             save_config({"lmstudio_url": url})
-            self._save_lm_url_btn.setText("Ô£ô")
+            self._save_lm_url_btn.setText("✓")
             self._save_lm_url_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: {C.DARK}; color: {C.GREEN};
@@ -915,29 +915,29 @@ class ConfigToolbar(QWidget):
         """Launch LM Studio application."""
         path = find_lmstudio_path()
         if not path:
-            self._lm_install_lbl.setText("ÔØî LM Studio no est├í instalado.")
+            self._lm_install_lbl.setText("❌ LM Studio no está instalado.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
             return
 
         success = launch_lmstudio()
         if success:
-            self._lm_install_lbl.setText("Ô£à LM Studio iniciado. Esperando servidor...")
+            self._lm_install_lbl.setText("✓ LM Studio iniciado. Esperando servidor...")
             self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Wait for server then refresh
             QTimer.singleShot(1000, self._refresh_lmstudio_status)
         else:
-            self._lm_install_lbl.setText("ÔØî Error al iniciar LM Studio.")
+            self._lm_install_lbl.setText("❌ Error al iniciar LM Studio.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _on_lm_quit(self):
         """Quit LM Studio application."""
         success = quit_lmstudio()
         if success:
-            self._lm_install_lbl.setText("Ô£à LM Studio detenido.")
+            self._lm_install_lbl.setText("✓ LM Studio detenido.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             QTimer.singleShot(500, self._refresh_lmstudio_status)
         else:
-            self._lm_install_lbl.setText("ÔÜá´©Å No se pudo detener LM Studio.")
+            self._lm_install_lbl.setText("⚠️ No se pudo detener LM Studio.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.ACC}; background: transparent;")
 
     def _mk_sep(self) -> QFrame:
@@ -950,10 +950,10 @@ class ConfigToolbar(QWidget):
         gemini = self._gemini_key_input.text().strip()
         try:
             save_config({"gemini_api_key": gemini})
-            self._gemini_status.setText("Ô£à Gemini key guardada")
+            self._gemini_status.setText("✓ Gemini key guardada")
             self._gemini_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         except Exception as e:
-            self._gemini_status.setText(f"ÔØî Error: {e}")
+            self._gemini_status.setText(f"❌ Error: {e}")
             self._gemini_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_openrouter_key(self):
@@ -961,10 +961,10 @@ class ConfigToolbar(QWidget):
         openrouter = self._openrouter_key_input.text().strip()
         try:
             save_config({"openrouter_api_key": openrouter})
-            self._or_status.setText("Ô£à OpenRouter key guardada")
+            self._or_status.setText("✓ OpenRouter key guardada")
             self._or_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         except Exception as e:
-            self._or_status.setText(f"ÔØî Error: {e}")
+            self._or_status.setText(f"❌ Error: {e}")
             self._or_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _populate_audio_devices(self):
@@ -973,8 +973,8 @@ class ConfigToolbar(QWidget):
         saved_spk = load_config().get("audio_output_device", None)
 
         # Add "System Default" as the first / fallback option (stored as None)
-        self._mic_combo.addItem("­ƒÄÖ  System Default", None)
-        self._speaker_combo.addItem("­ƒöè  System Default", None)
+        self._mic_combo.addItem("🎙  System Default", None)
+        self._speaker_combo.addItem("🔊  System Default", None)
 
         _MAPPER_KEYWORDS = (
             "asignador de sonido",   # es-ES Windows mapper
@@ -1051,7 +1051,7 @@ class ConfigToolbar(QWidget):
         self._model_combo.blockSignals(True)
         self._model_combo.clear()
         self._reload_btn.setEnabled(False)
-        self._reload_btn.setText("ÔÅ│")
+        self._reload_btn.setText("🔄")
 
         saved_model = get_model("ollama")
         models_found = 0
@@ -1087,7 +1087,7 @@ class ConfigToolbar(QWidget):
                 self._model_combo.setCurrentIndex(0)
 
         self._model_combo.blockSignals(False)
-        self._reload_btn.setText("Ôå╗")
+        self._reload_btn.setText("🔄")
         self._reload_btn.setEnabled(True)
 
 
@@ -1245,7 +1245,7 @@ class ConfigToolbar(QWidget):
         # Re-enable after a moment
         QTimer.singleShot(3000, lambda: (
             self._pull_btn.setEnabled(True),
-            self._pull_status.setText("Ô£à Pull started ÔÇö check terminal"),
+            self._pull_status.setText("✓ Pull started — check terminal"),
             self._pull_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;"),
         ))
 
@@ -1267,11 +1267,11 @@ class ConfigToolbar(QWidget):
                     ["x-terminal-emulator", "-e", "ollama serve"],
                     cwd=str(Path.home())
                 )
-            self._srv_status.setText("Ôû▓ Server starting...")
+            self._srv_status.setText("▶ Server starting...")
             self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             QTimer.singleShot(3000, self._check_server_status)
         except Exception as e:
-            self._srv_status.setText(f"ÔØî Error: {e}")
+            self._srv_status.setText(f"❌ Error: {e}")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _on_down_server(self):
@@ -1286,10 +1286,10 @@ class ConfigToolbar(QWidget):
                 subprocess.run(["pkill", "-f", "ollama"], capture_output=True, timeout=5)
             else:
                 subprocess.run(["pkill", "-f", "ollama"], capture_output=True, timeout=5)
-            self._srv_status.setText("Ôû╝ Server stopped")
+            self._srv_status.setText("■ Server stopped")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
         except Exception as e:
-            self._srv_status.setText(f"ÔØî Error: {e}")
+            self._srv_status.setText(f"❌ Error: {e}")
             self._srv_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _check_server_status(self):
@@ -1301,7 +1301,7 @@ class ConfigToolbar(QWidget):
                     capture_output=True, text=True, timeout=3
                 )
                 if "ollama.exe" in r.stdout:
-                    self._srv_status.setText("ÔùÅ  Server: RUNNING")
+                    self._srv_status.setText("●  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
             else:
@@ -1309,11 +1309,11 @@ class ConfigToolbar(QWidget):
                     ["pgrep", "-f", "ollama"], capture_output=True, timeout=3
                 )
                 if r.returncode == 0:
-                    self._srv_status.setText("ÔùÅ  Server: RUNNING")
+                    self._srv_status.setText("●  Server: RUNNING")
                     self._srv_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
                     return
-            self._srv_status.setText("Ôùï  Server: STOPPED")
+            self._srv_status.setText("○  Server: STOPPED")
             self._srv_status.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
         except Exception:
-            self._srv_status.setText("Ôùï  Server: unknown")
+            self._srv_status.setText("○  Server: unknown")
             self._srv_status.setStyleSheet(f"color: {C.TEXT_DIM}; background: transparent;")
