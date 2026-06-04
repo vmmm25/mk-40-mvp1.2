@@ -42,19 +42,41 @@ Esta sección unifica la configuración de audio, transcripción local y síntes
 
 ---
 
-## 🛠 Instalación Rápida (Click & Play)
+## 🛠 Instalación y Lanzamiento
 
-MARK-40 incluye un instalador automático para Windows.
-
-1. **Clona o descarga este repositorio:**
+### 🪟 Windows (Click & Play / Terminal)
+1. **Clona o descarga este repositorio e ingresa a la carpeta:**
    ```bash
    git clone https://github.com/vmmm25/mk-40-mvp1.2.git
+   cd mk-40-mvp1.2
    ```
+2. **Ejecuta el script de inicio:**
+   Haz doble clic sobre el archivo **`Run_JARVIS.bat`** o ejecútalo mediante la consola de comandos (CMD):
+   ```cmd
+   Run_JARVIS.bat
+   ```
+   *(El script detectará si es tu primera vez, configurará el entorno virtual Python, instalará las dependencias necesarias y abrirá el Asistente automáticamente).*
 
-2. **Abre la carpeta del proyecto y ejecuta:**
-   Haz doble clic sobre el archivo **`Run_JARVIS.bat`**. 
-   
-   *(El script detectará si es tu primera vez, instalará el entorno virtual Python, descargará las librerías necesarias y abrirá el Asistente automáticamente).*
+---
+
+### 🐧 Linux Ubuntu / Debian (Línea de Comandos)
+
+1. **Instala las dependencias necesarias del sistema:**
+   Para soportar audio local (Whisper, Piper), interfaz gráfica (PyQt6) y controladores multimedia, ejecuta:
+   ```bash
+   sudo apt update && sudo apt install -y xdg-utils pulseaudio-utils network-manager wmctrl libportaudio2 build-essential
+   ```
+2. **Clona el repositorio e ingresa a la carpeta:**
+   ```bash
+   git clone https://github.com/vmmm25/mk-40-mvp1.2.git
+   cd mk-40-mvp1.2
+   ```
+3. **Asigna permisos de ejecución y lanza el launcher Bash:**
+   ```bash
+   chmod +x Run_JARVIS.sh
+   ./Run_JARVIS.sh
+   ```
+   *(El launcher configurará el entorno virtual `.venv`, compilará Whisper.cpp nativamente para optimizar el rendimiento y descargará los binarios de Piper y modelos locales para español).*
 
 ## 🚀 Uso Avanzado
 

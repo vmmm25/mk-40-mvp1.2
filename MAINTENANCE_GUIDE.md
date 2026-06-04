@@ -753,6 +753,15 @@ python -m pytest tests/ -v             # Tests
 flake8 . --max-line-length=120          # Lint
 black --line-length=120 .               # Formatear
 
+# === SOPORTE MULTIPLATAFORMA (LINUX / UBUNTU) ===
+# Instalar dependencias del sistema requeridas para audio, UI y herramientas:
+# sudo apt update && sudo apt install -y xdg-utils pulseaudio-utils network-manager wmctrl libportaudio2 build-essential
+#
+# Lanzar el asistente en Linux:
+# chmod +x Run_JARVIS.sh
+# ./Run_JARVIS.sh
+
+
 # === GIT ===
 git status                              # Estado
 git log --oneline -10                   # Últimos 10 commits

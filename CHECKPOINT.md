@@ -44,6 +44,11 @@ Revisar, corregir problemas críticos y mejorar el asistente virtual MARK XL (J.
 - **Documentación Visual:** Actualización de `readme.md` con capturas de pantalla reales del HUD y de los paneles de configuración y voz.
 - **Instalación Directa:** `Run_JARVIS.bat` automatiza la creación del entorno virtual `.venv` y la instalación de dependencias requeridas (`playwright`, `psutil`, `requests`, `sounddevice`, etc.).
 
+#### 🐧 Soporte Nativo para Linux (Ubuntu / Debian)
+- **Script de Lanzamiento:** Creado `Run_JARVIS.sh` para automatizar la configuración y ejecución de la aplicación en distribuciones basadas en Debian/Ubuntu.
+- **Compilación de Motores:** Actualizado `download_engines.py` para compilar nativamente `whisper.cpp` mediante `make` y descargar el tarball (`.tar.gz`) oficial de Piper para Linux de forma desatendida.
+- **Documentación de Entorno:** Integradas las instrucciones paso a paso para la instalación por línea de comandos y prerequisitos del sistema (apt packages) en `readme.md` y `MAINTENANCE_GUIDE.md`.
+
 ---
 
 ## 🛠️ Archivos Relevantes
