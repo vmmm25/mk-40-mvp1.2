@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
 from memory.config_manager import load_config, save_config, get_model, set_model
 from ui.theme import Theme as C, PROVIDER_COLORS, get_openrouter_color as _get_openrouter_color
 from lmstudio_control import (
-    find_lmstudio_path, get_downloaded_models,
+    find_lmstudio_path, find_lms_cli_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
     is_server_running, get_server_status,
     load_model, unload_model,
@@ -649,6 +649,7 @@ class ConfigToolbar(QWidget):
         self._lm_url_input.setFixedHeight(30)
         self._lm_url_input.setText(cfg.get("lmstudio_url", "http://localhost:1234"))
         self._lm_url_input.setStyleSheet(_INPUT_STYLE)
+        self._lm_url_input.editingFinished.connect(self._save_lmstudio_url)
         url_row.addWidget(self._lm_url_input, stretch=1)
         
         self._save_lm_url_btn = self._build_btn("✓", C.GREEN, h=30, w=32)
@@ -658,9 +659,9 @@ class ConfigToolbar(QWidget):
         
         ctrl_row = QHBoxLayout(); ctrl_row.setSpacing(10)
         ctrl_row.addStretch()
-        self._lm_launch_btn = self._build_btn("▶ LAUNCH", C.GREEN, h=28)
+        self._lm_launch_btn = self._build_btn("▶ INICIAR", C.GREEN, h=28)
         self._lm_launch_btn.clicked.connect(self._on_lm_launch)
-        self._lm_quit_btn = self._build_btn("⏹ QUIT", C.RED, h=28)
+        self._lm_quit_btn = self._build_btn("⏹ DETENER", C.RED, h=28)
         self._lm_quit_btn.clicked.connect(self._on_lm_quit)
         ctrl_row.addWidget(self._lm_launch_btn)
         ctrl_row.addWidget(self._lm_quit_btn)
@@ -688,25 +689,22 @@ class ConfigToolbar(QWidget):
         self._lm_model_combo.setFont(QFont("Segoe UI", 11))
         self._lm_model_combo.setFixedHeight(30)
         self._lm_model_combo.setStyleSheet(_COMBO_STYLE)
+        self._lm_model_combo.currentIndexChanged.connect(self._save_lm_model)
         lay.addWidget(self._lm_model_combo)
         
         model_action_row = QHBoxLayout()
         model_action_row.addStretch()
         
-        self._lm_run_model_btn = self._build_btn("▶ RUN", C.GREEN, h=30)
+        self._lm_run_model_btn = self._build_btn("▶ CARGAR", C.GREEN, h=30)
         self._lm_run_model_btn.clicked.connect(self._on_lm_run_model)
         model_action_row.addWidget(self._lm_run_model_btn)
         
-        self._lm_eject_model_btn = self._build_btn("⏹ EJECT", C.RED, h=30)
+        self._lm_eject_model_btn = self._build_btn("⏹ LIBERAR", C.RED, h=30)
         self._lm_eject_model_btn.clicked.connect(self._on_lm_eject_model)
         self._lm_eject_model_btn.setToolTip("Descargar modelo de RAM/VRAM")
         model_action_row.addWidget(self._lm_eject_model_btn)
         
-        self._save_lm_model_btn = self._build_btn("GUARDAR", C.PRI, h=30)
-        self._save_lm_model_btn.clicked.connect(self._save_lm_model)
-        model_action_row.addWidget(self._save_lm_model_btn)
-        
-        self._lm_refresh_models_btn = self._build_btn("↻ SCAN", C.ACC, h=30)
+        self._lm_refresh_models_btn = self._build_btn("↻ ESCANEAR", C.ACC, h=30)
         self._lm_refresh_models_btn.clicked.connect(self._populate_lm_models)
         model_action_row.addWidget(self._lm_refresh_models_btn)
         
@@ -728,9 +726,15 @@ class ConfigToolbar(QWidget):
 
     def _check_lmstudio_path(self):
         """Find LM Studio installation and update UI."""
-        path = find_lmstudio_path()
-        if path:
-            self._lm_path_lbl.setText(f"✓ Instalado en: {path.parent}")
+        cli_path = find_lms_cli_path()
+        gui_path = find_lmstudio_path()
+        if cli_path or gui_path:
+            details = []
+            if cli_path:
+                details.append("CLI detectado")
+            if gui_path:
+                details.append("GUI detectada")
+            self._lm_path_lbl.setText(f"✓ LM Studio: {', '.join(details)}")
             self._lm_path_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         else:
             self._lm_path_lbl.setText("⚠️ LM Studio no encontrado. Instálalo desde lmstudio.ai")
@@ -742,9 +746,13 @@ class ConfigToolbar(QWidget):
         if running:
             self._lm_server_lbl.setText("●  Server: RUNNING")
             self._lm_server_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent; padding: 2px 0;")
+            self._lm_install_lbl.setText("✓ Servidor en línea y listo.")
+            self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         else:
             self._lm_server_lbl.setText("●  Server: OFFLINE")
             self._lm_server_lbl.setStyleSheet(f"color: {C.RED}; background: transparent; padding: 2px 0;")
+            self._lm_install_lbl.setText("⚠️ El servidor no está respondiendo.")
+            self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _populate_lm_models(self):
         """Scan for local models and populate the combo."""
@@ -780,14 +788,15 @@ class ConfigToolbar(QWidget):
             self._lm_model_status.setText("⚠️ No se encontraron modelos locales")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
-    def _save_lm_model(self):
+    def _save_lm_model(self, *args, silent: bool = False):
         """Save LM Studio model selection, sync right-panel, restart engine."""
         model_id = self._lm_model_combo.currentData()
         if model_id:
             set_model(model_id, "lmstudio")
-            short_name = model_id.split("/")[-1].split(":")[0]
-            self._lm_model_status.setText(f"✓ Guardado: {short_name}")
-            self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
+            if not silent:
+                short_name = model_id.split("/")[-1].split(":")[0]
+                self._lm_model_status.setText(f"✓ Seleccionado: {short_name}")
+                self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
             # Keep right-panel combo in sync
             right_combo = self._main_win._right_model_combo
             if hasattr(right_combo, 'blockSignals'):
@@ -810,8 +819,9 @@ class ConfigToolbar(QWidget):
             if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
-            self._lm_model_status.setText("❌ No se seleccionó modelo")
-            self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
+            if not silent:
+                self._lm_model_status.setText("❌ No se seleccionó modelo")
+                self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _on_lm_run_model(self):
         """Load the selected model into LM Studio using the REST API."""
@@ -835,10 +845,10 @@ class ConfigToolbar(QWidget):
     def _on_lm_run_finished(self, success: bool, msg: str):
         self._lm_run_model_btn.setEnabled(True)
         if success:
-            self._lm_model_status.setText(f"✅ {msg}")
+            # Save silently to not overwrite our custom success/active message
+            self._save_lm_model(silent=True)
+            self._lm_model_status.setText(f"✅ Cargado y activo: {self._lm_model_combo.currentText()}")
             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-            # Save it implicitly as the active model
-            self._save_lm_model()
         else:
             self._lm_model_status.setText(f"❌ {msg}")
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
@@ -864,7 +874,7 @@ class ConfigToolbar(QWidget):
     def _on_lm_eject_finished(self, success: bool, msg: str):
         self._lm_eject_model_btn.setEnabled(True)
         if success:
-            self._lm_model_status.setText(f"✅ {msg}")
+            self._lm_model_status.setText(f"✅ Modelo liberado de memoria.")
             self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
         else:
             self._lm_model_status.setText(f"❌ {msg}")
@@ -895,7 +905,7 @@ class ConfigToolbar(QWidget):
     def _update_lm_auto_btn(self, enabled: bool):
         """Update auto-launch toggle button appearance."""
         if enabled:
-            self._lm_auto_toggle.setText("ON")
+            self._lm_auto_toggle.setText("AUTO: ON")
             self._lm_auto_toggle.setStyleSheet(f"""
                 QPushButton {{
                     background: {C.GREEN}22; color: {C.GREEN};
@@ -903,7 +913,7 @@ class ConfigToolbar(QWidget):
                 }}
             """)
         else:
-            self._lm_auto_toggle.setText("OFF")
+            self._lm_auto_toggle.setText("AUTO: OFF")
             self._lm_auto_toggle.setStyleSheet(f"""
                 QPushButton {{
                     background: transparent; color: {C.TEXT_DIM};
@@ -912,33 +922,39 @@ class ConfigToolbar(QWidget):
             """)
 
     def _on_lm_launch(self):
-        """Launch LM Studio application."""
-        path = find_lmstudio_path()
+        """Launch LM Studio application in background."""
+        path = find_lms_cli_path() or find_lmstudio_path()
         if not path:
             self._lm_install_lbl.setText("❌ LM Studio no está instalado.")
             self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
             return
 
-        success = launch_lmstudio()
-        if success:
-            self._lm_install_lbl.setText("✓ LM Studio iniciado. Esperando servidor...")
-            self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-            # Wait for server then refresh
-            QTimer.singleShot(1000, self._refresh_lmstudio_status)
-        else:
-            self._lm_install_lbl.setText("❌ Error al iniciar LM Studio.")
-            self._lm_install_lbl.setStyleSheet(f"color: {C.RED}; background: transparent;")
+        self._lm_install_lbl.setText("⏳ Iniciando servidor LM Studio...")
+        self._lm_install_lbl.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+
+        import threading
+        def worker():
+            success = launch_lmstudio()
+            def update_ui():
+                self._refresh_lmstudio_status()
+                self._populate_lm_models()
+            QTimer.singleShot(0, update_ui)
+            
+        threading.Thread(target=worker, daemon=True).start()
 
     def _on_lm_quit(self):
-        """Quit LM Studio application."""
-        success = quit_lmstudio()
-        if success:
-            self._lm_install_lbl.setText("✓ LM Studio detenido.")
-            self._lm_install_lbl.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-            QTimer.singleShot(500, self._refresh_lmstudio_status)
-        else:
-            self._lm_install_lbl.setText("⚠️ No se pudo detener LM Studio.")
-            self._lm_install_lbl.setStyleSheet(f"color: {C.ACC}; background: transparent;")
+        """Quit LM Studio application in background."""
+        self._lm_install_lbl.setText("⏳ Deteniendo servidor LM Studio...")
+        self._lm_install_lbl.setStyleSheet(f"color: {C.ACC2}; background: transparent;")
+
+        import threading
+        def worker():
+            success = quit_lmstudio()
+            def update_ui():
+                self._refresh_lmstudio_status()
+            QTimer.singleShot(0, update_ui)
+            
+        threading.Thread(target=worker, daemon=True).start()
 
     def _mk_sep(self) -> QFrame:
         f = QFrame(); f.setFrameShape(QFrame.Shape.HLine)

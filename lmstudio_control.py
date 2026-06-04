@@ -127,34 +127,160 @@ def find_lmstudio_path() -> Optional[Path]:
     return None
 
 
+# ── LMS CLI path lookup and parsing helpers ────────────────────────────
+
+def find_lms_cli_path() -> Optional[Path]:
+    """Find the path of the lms CLI executable."""
+    system = platform.system()
+    binary_name = "lms.exe" if system == "Windows" else "lms"
+
+    # 1. Check ~/.lmstudio/bin/lms
+    home_lms = Path.home() / ".lmstudio" / "bin" / binary_name
+    if home_lms.exists():
+        return home_lms
+
+    # 2. Check system PATH via where/which
+    try:
+        cmd = ["where", "lms"] if system == "Windows" else ["which", "lms"]
+        result = subprocess.run(
+            cmd,
+            capture_output=True, text=True, timeout=3
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            p = Path(result.stdout.strip().split("\n")[0].strip())
+            if p.exists():
+                return p
+    except Exception:
+        pass
+
+    # 3. Check alternative common directories
+    main_install_dir = find_lmstudio_path()
+    if main_install_dir:
+        parent_dir = main_install_dir.parent
+        for root, dirs, files in os.walk(str(parent_dir)):
+            if binary_name in files:
+                return Path(root) / binary_name
+
+    return None
+
+
+def _parse_lms_ls(output: str) -> list[dict]:
+    """Parse the output of 'lms ls' command.
+
+    Example output:
+    You have 12 models...
+    LLM                                        PARAMS     ARCH          SIZE        DEVICE    
+    deepseek-r1-distill-qwen-1.5b              1.5B       Qwen2         1.89 GB     Local     
+    nvidia/nemotron-3-nano-4b (1 variant)      4.0B       nemotron_h    4.23 GB     Local     
+    """
+    import re
+    models = []
+    lines = output.strip().split("\n")
+    in_llm_section = False
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # Detect start of LLM section
+        if line.startswith("LLM ") or re.match(r"^LLM\s+", line):
+            in_llm_section = True
+            continue
+
+        if in_llm_section:
+            # Detect end of LLM section
+            if "EMBEDDING" in line or line.startswith("---"):
+                in_llm_section = False
+                break
+
+            # Split line by 2 or more spaces
+            parts = re.split(r'\s{2,}', line)
+            if parts:
+                model_key = parts[0].strip()
+                if model_key in ("LLM", "PARAMS", "ARCH", "SIZE", "DEVICE"):
+                    continue
+
+                # Strip variant suffix: e.g. "nvidia/nemotron-3-nano-4b (1 variant)" -> "nvidia/nemotron-3-nano-4b"
+                clean_key = re.sub(r'\s*\(\d+\s+variant\w*\)', '', model_key).strip()
+                if clean_key:
+                    name = clean_key
+                    if "/" in clean_key:
+                        parts_name = clean_key.split("/")
+                        name = f"{parts_name[0]} - {parts_name[-1]}"
+                    models.append({"id": clean_key, "name": name})
+
+    return models
+
+
+def _parse_lms_ps(output: str) -> list[dict]:
+    """Parse the output of 'lms ps' command to find loaded models."""
+    import re
+    models = []
+    lines = output.strip().split("\n")
+    header_found = False
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if "IDENTIFIER" in line and "MODEL" in line:
+            header_found = True
+            continue
+        if header_found:
+            if "No models" in line or line.startswith("---"):
+                break
+            parts = re.split(r'\s{2,}', line)
+            if parts:
+                identifier = parts[0].strip()
+                model_name = parts[1].strip() if len(parts) > 1 else identifier
+                models.append({"id": identifier, "name": model_name})
+    return models
+
+
 # ── Model discovery ────────────────────────────────────────────────────
 
 def get_downloaded_models() -> list[dict]:
-    """Scan LM Studio's model directories for downloaded models.
+    """Scan LM Studio's model directories or query lms CLI for downloaded models.
 
     Returns a list of dicts with 'id' and 'name' keys.
     """
+    # 1. Try lms CLI first
+    cli_path = find_lms_cli_path()
+    if cli_path:
+        try:
+            logger.info("[LM Studio] Listing models via CLI 'lms ls'...")
+            result = subprocess.run(
+                [str(cli_path), "ls"],
+                capture_output=True, text=True, timeout=10, encoding="utf-8"
+            )
+            if result.returncode == 0:
+                parsed_models = _parse_lms_ls(result.stdout)
+                if parsed_models:
+                    logger.info(f"[LM Studio] Found {len(parsed_models)} models via CLI.")
+                    return parsed_models
+            else:
+                logger.error(f"[LM Studio] CLI 'lms ls' failed: {result.stderr.strip()}")
+        except Exception as e:
+            logger.exception(f"[LM Studio] CLI 'lms ls' error: {e}")
+
+    # 2. Fallback to manual directory scanning
+    logger.info("[LM Studio] Falling back to manual directory scanning for models...")
     models: list[dict] = []
     system = platform.system()
-
-    # LM Studio stores models in these locations
     model_dirs: list[Path] = []
 
     if system == "Windows":
         home = Path.home()
         model_dirs.append(home / ".lmstudio" / "models")
         model_dirs.append(home / ".cache" / "lm-studio" / "models")
-
-        # Also check the app's data dir
         localappdata = Path(os.environ.get("LOCALAPPDATA", ""))
         if localappdata:
             model_dirs.append(localappdata / "LM Studio" / "models")
-
     elif system == "Darwin":
         home = Path.home()
         model_dirs.append(home / ".lmstudio" / "models")
         model_dirs.append(home / "Library" / "Application Support" / "LM Studio" / "models")
-
     else:  # Linux
         home = Path.home()
         model_dirs.append(home / ".lmstudio" / "models")
@@ -164,27 +290,27 @@ def get_downloaded_models() -> list[dict]:
     for d in model_dirs:
         if not d.exists():
             continue
-        for item in d.iterdir():
-            if item.is_dir():
-                for f in item.iterdir():
-                    # Look for .gguf files or subdirectories with model files
-                    if f.suffix.lower() in (".gguf", ".bin", ".pt", ".pth", ".safetensors"):
-                        model_id = f"{item.name}/{f.stem}"
-                        if model_id not in seen:
-                            seen.add(model_id)
-                            models.append({"id": model_id, "name": f"{item.name} - {f.stem}"})
-                    elif f.is_dir():
-                        # HuggingFace-style: publisher/model-name
-                        model_id = f"{item.name}/{f.name}"
-                        if model_id not in seen:
-                            seen.add(model_id)
-                            models.append({"id": model_id, "name": f"{item.name}/{f.name}"})
-            elif item.suffix.lower() in (".gguf",):
-                # Single .gguf file directly in models dir
-                model_id = item.stem
-                if model_id not in seen:
-                    seen.add(model_id)
-                    models.append({"id": model_id, "name": item.stem})
+        try:
+            for item in d.iterdir():
+                if item.is_dir():
+                    for f in item.iterdir():
+                        if f.suffix.lower() in (".gguf", ".bin", ".pt", ".pth", ".safetensors"):
+                            model_id = f"{item.name}/{f.stem}"
+                            if model_id not in seen:
+                                seen.add(model_id)
+                                models.append({"id": model_id, "name": f"{item.name} - {f.stem}"})
+                        elif f.is_dir():
+                            model_id = f"{item.name}/{f.name}"
+                            if model_id not in seen:
+                                seen.add(model_id)
+                                models.append({"id": model_id, "name": f"{item.name}/{f.name}"})
+                elif item.suffix.lower() in (".gguf",):
+                    model_id = item.stem
+                    if model_id not in seen:
+                        seen.add(model_id)
+                        models.append({"id": model_id, "name": item.stem})
+        except Exception as e:
+            logger.error(f"[LM Studio] Error scanning directory {d}: {e}")
 
     # Also query API for loaded models if server is running
     try:
@@ -198,7 +324,6 @@ def get_downloaded_models() -> list[dict]:
         pass
 
     if not models:
-        # Provide sensible defaults if nothing found
         models = [
             {"id": "local-model", "name": "Local Model (loaded in LM Studio)"},
         ]
@@ -220,24 +345,44 @@ def _fetch_api_loaded_models() -> list[dict]:
                 {"id": m["id"], "name": m.get("id", "Unknown")}
                 for m in data.get("data", [])
             ]
-    except requests.RequestException:
-        pass
     except Exception:
         pass
     return []
 
 
 def load_model(model_id: str) -> tuple[bool, str]:
-    """Load a model into LM Studio via the REST API."""
+    """Load a model into LM Studio using CLI or REST API."""
+    # 1. Try lms CLI load first
+    cli_path = find_lms_cli_path()
+    if cli_path:
+        try:
+            logger.info(f"[LM Studio] Loading model '{model_id}' via CLI...")
+            result = subprocess.run(
+                [str(cli_path), "load", model_id, "--yes"],
+                capture_output=True, text=True, timeout=60, encoding="utf-8"
+            )
+            if result.returncode == 0:
+                return True, f"Modelo '{model_id}' cargado correctamente mediante CLI."
+            else:
+                error_msg = result.stderr.strip() or result.stdout.strip()
+                logger.error(f"[LM Studio] CLI model load failed: {error_msg}")
+        except subprocess.TimeoutExpired:
+            logger.error(f"[LM Studio] CLI model load timed out for '{model_id}'")
+            return False, "Error: Tiempo de espera agotado al cargar el modelo."
+        except Exception as e:
+            logger.exception(f"[LM Studio] CLI model load error: {e}")
+
+    # 2. Fallback to HTTP REST API
     base_url = get_lmstudio_url()
     try:
+        logger.info(f"[LM Studio] Loading model '{model_id}' via REST API fallback...")
         resp = requests.post(
             f"{base_url}/api/v1/models/load",
             json={"model": model_id},
-            timeout=60, # Loading might take time
+            timeout=60,
         )
         if resp.status_code == 200:
-            return True, f"Modelo '{model_id}' cargado correctamente."
+            return True, f"Modelo '{model_id}' cargado correctamente (API)."
         else:
             return False, f"Error HTTP {resp.status_code}: {resp.text}"
     except requests.ConnectionError:
@@ -249,16 +394,37 @@ def load_model(model_id: str) -> tuple[bool, str]:
 
 
 def unload_model(model_id: str) -> tuple[bool, str]:
-    """Unload a model from LM Studio via the REST API."""
+    """Unload a model from LM Studio using CLI or REST API."""
+    # 1. Try lms CLI unload first
+    cli_path = find_lms_cli_path()
+    if cli_path:
+        try:
+            logger.info(f"[LM Studio] Unloading model '{model_id}' via CLI...")
+            result = subprocess.run(
+                [str(cli_path), "unload", model_id],
+                capture_output=True, text=True, timeout=15, encoding="utf-8"
+            )
+            if result.returncode == 0:
+                return True, f"Modelo '{model_id}' descargado de memoria mediante CLI."
+            else:
+                error_msg = result.stderr.strip() or result.stdout.strip()
+                logger.error(f"[LM Studio] CLI model unload failed: {error_msg}")
+        except subprocess.TimeoutExpired:
+            return False, "Error: Tiempo de espera agotado al descargar el modelo."
+        except Exception as e:
+            logger.exception(f"[LM Studio] CLI model unload error: {e}")
+
+    # 2. Fallback to HTTP REST API
     base_url = get_lmstudio_url()
     try:
+        logger.info(f"[LM Studio] Unloading model '{model_id}' via REST API fallback...")
         resp = requests.post(
             f"{base_url}/api/v1/models/unload",
             json={"model": model_id},
             timeout=10,
         )
         if resp.status_code == 200:
-            return True, f"Modelo '{model_id}' descargado de memoria."
+            return True, f"Modelo '{model_id}' descargado de memoria (API)."
         else:
             return False, f"Error HTTP {resp.status_code}: {resp.text}"
     except requests.ConnectionError:
@@ -272,63 +438,109 @@ def unload_model(model_id: str) -> tuple[bool, str]:
 # ── Application lifecycle ──────────────────────────────────────────────
 
 def launch_lmstudio() -> bool:
-    """Launch LM Studio application.
+    """Launch LM Studio local server and optionally the application GUI.
 
-    Returns True if the process was started successfully.
+    Returns True if the server started successfully.
     """
-    path = find_lmstudio_path()
-    if not path:
-        logger.error("[LM Studio] Cannot launch — installation not found.")
-        return False
+    cli_path = find_lms_cli_path()
+    server_success = False
 
-    try:
-        system = platform.system()
-        if system == "Windows":
-            subprocess.Popen(
-                [str(path)],
-                creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+    if cli_path:
+        try:
+            from urllib.parse import urlparse
+            url = get_lmstudio_url()
+            parsed = urlparse(url)
+            port = parsed.port or 1234
+        except Exception:
+            port = 1234
+
+        try:
+            logger.info(f"[LM Studio] Starting server via CLI on port {port}...")
+            result = subprocess.run(
+                [str(cli_path), "server", "start", "--port", str(port)],
+                capture_output=True, text=True, timeout=15
             )
+            if result.returncode == 0:
+                logger.info(f"[LM Studio] Server started successfully via CLI: {result.stdout.strip()}")
+                server_success = True
+            else:
+                logger.error(f"[LM Studio] CLI server start failed: {result.stderr.strip()}")
+        except Exception as e:
+            logger.exception(f"[LM Studio] Failed to start server via CLI: {e}")
 
-        elif system == "Darwin":
-            subprocess.Popen(["open", str(path.parent.parent)])
-        else:
-            subprocess.Popen([str(path)], start_new_session=True)
+    # Also launch GUI if found
+    gui_path = find_lmstudio_path()
+    if gui_path:
+        try:
+            logger.info(f"[LM Studio] Launching GUI: {gui_path}...")
+            system = platform.system()
+            if system == "Windows":
+                subprocess.Popen(
+                    [str(gui_path)],
+                    creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS,
+                )
+            elif system == "Darwin":
+                subprocess.Popen(["open", str(gui_path.parent.parent)])
+            else:
+                subprocess.Popen([str(gui_path)], start_new_session=True)
+            if not cli_path:
+                server_success = True
+        except Exception as e:
+            logger.error(f"[LM Studio] Failed to launch GUI: {e}")
 
-        logger.info(f"[LM Studio] Launched: {path}")
-        return True
-
-    except Exception as e:
-        logger.error(f"[LM Studio] Failed to launch: {e}")
-        return False
+    return server_success or is_server_running()
 
 
 def quit_lmstudio() -> bool:
-    """Quit LM Studio application gracefully.
+    """Quit LM Studio server and application.
 
     Returns True if the process was terminated.
     """
+    cli_path = find_lms_cli_path()
+    cli_success = False
+
+    if cli_path:
+        try:
+            logger.info("[LM Studio] Stopping server via CLI...")
+            result = subprocess.run(
+                [str(cli_path), "server", "stop"],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                logger.info("[LM Studio] Server stopped via CLI.")
+                cli_success = True
+            else:
+                logger.error(f"[LM Studio] CLI server stop failed: {result.stderr.strip()}")
+        except Exception as e:
+            logger.exception(f"[LM Studio] Failed to stop server via CLI: {e}")
+
+    # Also terminate the GUI processes to be thorough
+    gui_success = False
     system = platform.system()
     try:
         if system == "Windows":
-            subprocess.run(
+            result = subprocess.run(
                 ["taskkill", "/f", "/im", "LM Studio.exe"],
                 capture_output=True, timeout=5,
             )
+            gui_success = (result.returncode == 0)
         elif system == "Darwin":
-            subprocess.run(
+            result = subprocess.run(
                 ["pkill", "-x", "LM Studio"],
                 capture_output=True, timeout=5,
             )
+            gui_success = (result.returncode == 0)
         else:
-            subprocess.run(
+            result = subprocess.run(
                 ["pkill", "-x", "lm-studio"],
                 capture_output=True, timeout=5,
             )
-        logger.info("[LM Studio] Quit signal sent.")
-        return True
+            gui_success = (result.returncode == 0)
+        logger.info("[LM Studio] GUI process terminate signal sent.")
     except Exception as e:
-        logger.error(f"[LM Studio] Failed to quit: {e}")
-        return False
+        logger.error(f"[LM Studio] Failed to quit GUI: {e}")
+
+    return cli_success or gui_success
 
 
 # ── Server health checks ───────────────────────────────────────────────
@@ -377,9 +589,24 @@ def get_server_status() -> dict:
         else:
             result["error"] = f"HTTP {resp.status_code}"
     except requests.ConnectionError:
+        # Fallback to check via CLI status if connection error occurs
+        cli_path = find_lms_cli_path()
+        if cli_path:
+            try:
+                res = subprocess.run([str(cli_path), "status"], capture_output=True, text=True, timeout=5)
+                if res.returncode == 0 and "Server: ON" in res.stdout:
+                    result["running"] = True
+                    # Let's list loaded models using lms ps
+                    ps_res = subprocess.run([str(cli_path), "ps"], capture_output=True, text=True, timeout=5)
+                    if ps_res.returncode == 0:
+                        result["models"] = _parse_lms_ps(ps_res.stdout)
+                    return result
+            except Exception:
+                pass
         result["error"] = "Connection refused"
     except requests.Timeout:
         result["error"] = "Timeout"
     except Exception as e:
         result["error"] = str(e)
     return result
+

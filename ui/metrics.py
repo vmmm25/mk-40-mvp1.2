@@ -193,36 +193,50 @@ class ProviderStatusWorker(QThread):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.running = True
+        self._last_statuses = {"ollama": False, "lmstudio": False, "openrouter": False}
 
     def run(self):
         import requests
         from memory.config_manager import load_config
 
+        loop_count = 0
         while self.running:
             statuses = {}
             cfg = load_config()
+            active_provider = cfg.get("selected_provider", "gemini")
 
-            ollama_url = cfg.get("ollama_url", "http://localhost:11434").rstrip("/")
-            try:
-                r = requests.get(ollama_url, timeout=0.5)
-                statuses['ollama'] = (r.status_code == 200)
-            except Exception:
-                statuses['ollama'] = False
+            # 1. Ollama status check: every 3s if active, or every 30s (10 loops) if inactive
+            if active_provider == "ollama" or loop_count % 10 == 0:
+                ollama_url = cfg.get("ollama_url", "http://localhost:11434").rstrip("/")
+                try:
+                    r = requests.get(ollama_url, timeout=0.5)
+                    statuses['ollama'] = (r.status_code == 200)
+                except Exception:
+                    statuses['ollama'] = False
 
-            lm_url = cfg.get("lmstudio_url", "http://localhost:1234").rstrip("/")
-            try:
-                r = requests.get(f"{lm_url}/v1/models", timeout=0.5)
-                statuses['lmstudio'] = (r.status_code == 200)
-            except Exception:
-                statuses['lmstudio'] = False
+            # 2. LM Studio status check: every 3s if active, or every 30s (10 loops) if inactive
+            if active_provider == "lmstudio" or loop_count % 10 == 0:
+                lm_url = cfg.get("lmstudio_url", "http://localhost:1234").rstrip("/")
+                try:
+                    r = requests.get(f"{lm_url}/v1/models", timeout=0.5)
+                    statuses['lmstudio'] = (r.status_code == 200)
+                except Exception:
+                    statuses['lmstudio'] = False
 
-            try:
-                r = requests.get("https://openrouter.ai/", timeout=1.0)
-                statuses['openrouter'] = (r.status_code == 200)
-            except Exception:
-                statuses['openrouter'] = False
+            # 3. OpenRouter status check: every 3s if active, or every 30s (10 loops) if inactive
+            if active_provider == "openrouter" or loop_count % 10 == 0:
+                try:
+                    r = requests.get("https://openrouter.ai/", timeout=1.0)
+                    statuses['openrouter'] = (r.status_code == 200)
+                except Exception:
+                    statuses['openrouter'] = False
 
-            self.status_ready.emit(statuses)
+            # Merge new status checks with cached states to prevent UI flickering
+            for k, v in statuses.items():
+                self._last_statuses[k] = v
+
+            self.status_ready.emit(self._last_statuses.copy())
+            loop_count = (loop_count + 1) % 10
 
             for _ in range(30):
                 if not self.running:

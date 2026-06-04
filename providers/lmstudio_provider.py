@@ -1,4 +1,4 @@
-﻿"""MARK XL — LM Studio Provider.
+"""MARK XL — LM Studio Provider.
 
 Connects to LM Studio's local OpenAI-compatible server.
 Default endpoint: http://localhost:1234/v1
@@ -30,7 +30,10 @@ class LMStudioProvider(BaseProvider):
     def __init__(self, config: ProviderConfig):
         super().__init__(config)
         self.api_key = config.api_key  # may be empty — optional for LM Studio
-        self.base_url = config.base_url or LMSTUDIO_BASE
+        base = config.base_url or LMSTUDIO_BASE
+        if not base.endswith("/v1") and not base.endswith("/v1/"):
+            base = base.rstrip("/") + "/v1"
+        self.base_url = base
         self.model = config.model or DEFAULT_LMSTUDIO_MODEL
         self._session: aiohttp.ClientSession | None = None
 
@@ -122,6 +125,16 @@ class LMStudioProvider(BaseProvider):
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
+            # Determine actual model identifier to send (fallback to first loaded model if generic or empty)
+            model_to_use = self.model
+            if not model_to_use or model_to_use == "local-model":
+                try:
+                    loaded_models = await self.list_models()
+                    if loaded_models and loaded_models[0]["id"] != "local-model":
+                        model_to_use = loaded_models[0]["id"]
+                except Exception:
+                    pass
+
             payload = {
                 "messages": ls_messages,
                 "temperature": self.config.temperature,
@@ -129,9 +142,8 @@ class LMStudioProvider(BaseProvider):
                 "stream": False,
             }
 
-            # Only include model if one is specified (LM Studio can use whatever is loaded)
-            if self.model:
-                payload["model"] = self.model
+            if model_to_use:
+                payload["model"] = model_to_use
 
             # Convert tools if provided
             if tools:
@@ -178,6 +190,16 @@ class LMStudioProvider(BaseProvider):
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
+            # Determine actual model identifier to send (fallback to first loaded model if generic or empty)
+            model_to_use = self.model
+            if not model_to_use or model_to_use == "local-model":
+                try:
+                    loaded_models = await self.list_models()
+                    if loaded_models and loaded_models[0]["id"] != "local-model":
+                        model_to_use = loaded_models[0]["id"]
+                except Exception:
+                    pass
+
             payload = {
                 "messages": ls_messages,
                 "temperature": self.config.temperature,
@@ -185,8 +207,8 @@ class LMStudioProvider(BaseProvider):
                 "stream": True,
             }
 
-            if self.model:
-                payload["model"] = self.model
+            if model_to_use:
+                payload["model"] = model_to_use
 
             if tools:
                 payload["tools"] = self.convert_tools_openai(tools)
