@@ -8,7 +8,7 @@ echo ""
 
 # Verificar dependencias del sistema recomendadas
 missing_deps=()
-for cmd in xdg-open pactl nmcli wmctrl; do
+for cmd in xdg-open pactl nmcli wmctrl ffmpeg; do
     if ! command -v $cmd &> /dev/null; then
         missing_deps+=($cmd)
     fi
@@ -22,7 +22,7 @@ fi
 if [ ${#missing_deps[@]} -ne 0 ]; then
     echo "[!] Advertencia: Faltan dependencias del sistema recomendadas: ${missing_deps[*]}"
     echo "[*] Para un funcionamiento óptimo de audio y control, instálalas usando:"
-    echo "    sudo apt update && sudo apt install -y xdg-utils pulseaudio-utils network-manager wmctrl libportaudio2 build-essential"
+    echo "    sudo apt update && sudo apt install -y xdg-utils pulseaudio-utils network-manager wmctrl libportaudio2 build-essential ffmpeg"
     echo ""
 fi
 
@@ -35,7 +35,9 @@ if [ ! -d ".venv" ] || [ ! -f ".venv/bin/activate" ]; then
     echo "[*] Activando entorno e instalando dependencias..."
     source .venv/bin/activate
     python -m pip install --upgrade pip
-    python setup.py
+    python -m pip install -r requirements.txt
+    python -m playwright install
+    python -m playwright install-deps
     
     echo ""
     echo "[OK] Entorno configurado correctamente."
