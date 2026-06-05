@@ -99,3 +99,5 @@ frontend/
 rag/db/
 scripts/migrate_tools.py
 
+.vs/
+*.exe

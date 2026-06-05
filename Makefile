@@ -3,6 +3,8 @@
 install:
 	pip install -r requirements.txt
 	pip install -r requirements-dev.txt
+	pre-commit install
+	python -m playwright install
 
 test:
 	python -m pytest tests/ -v --tb=short --cov=. --cov-report=html
