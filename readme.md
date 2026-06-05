@@ -86,6 +86,31 @@ Esta sección unifica la configuración de audio, transcripción local y síntes
    ```
    *(El launcher configurará el entorno virtual `.venv`, compilará Whisper.cpp nativamente para optimizar el rendimiento y descargará los binarios de Piper y modelos locales para español).*
 
+## 🏗️ Arquitectura del Sistema
+
+MARK-40 utiliza un patrón modular que permite elegir dinámicamente entre procesamiento 100% local o en la nube para las funciones de Inteligencia Artificial (LLM) y Voz (STT/TTS).
+
+```mermaid
+graph TD
+    User([Usuario]) --> GUI[Interfaz HUD PyQt6]
+    
+    subgraph "Motor Central (MARK XL Core)"
+        GUI --> Factory[LLM Factory]
+        GUI --> Audio[Controlador STT/TTS]
+        Factory <--> RAG[Memoria RAG ChromaDB]
+    end
+
+    subgraph "Proveedores de IA (LLMs)"
+        Factory -.->|Nube Segura| CloudLLM[Gemini / OpenRouter]
+        Factory -.->|Red Local| LocalLLM[Ollama / LM Studio]
+    end
+
+    subgraph "Módulo de Voz (Audio)"
+        Audio -.->|Local Offline| LocalVoice[Whisper STT / Piper TTS]
+        Audio -.->|Nube Rápida| CloudVoice[Gemini Audio API]
+    end
+```
+
 ## 🚀 Uso Avanzado
 
 Al iniciar por primera vez, verás el panel de configuración (engranaje inferior derecho). Desde allí podrás:
