@@ -50,12 +50,17 @@ Esta sección unifica la configuración de audio, transcripción local y síntes
    git clone https://github.com/vmmm25/mk-40-mvp1.2.git
    cd mk-40-mvp1.2
    ```
-2. **Ejecuta el script de inicio:**
-   Haz doble clic sobre el archivo **`Run_JARVIS.bat`** o ejecútalo mediante la consola de comandos (CMD):
-   ```cmd
-   Run_JARVIS.bat
-   ```
-   *(El script detectará si es tu primera vez, configurará el entorno virtual Python, instalará las dependencias necesarias y abrirá el Asistente automáticamente).*
+2. **Opciones de Instalación y Lanzamiento:**
+   Al descargar o clonar el repositorio, notarás archivos ejecutables (`.exe`). Dependiendo de lo que busques, debes seleccionar el archivo correcto:
+   
+   - **Opción A (Recomendada) - Instalador Gráfico:** 
+     Haz doble clic en el archivo **`J.A.R.V.I.S_Setup.exe`**. Esto abrirá una ventana que te permitirá elegir en qué ruta deseas instalar el asistente. El instalador copiará los archivos, configurará el entorno virtual de Python por ti y creará accesos directos en tu Escritorio para mayor comodidad.
+   
+   - **Opción B - Ejecución Directa (Portable):**
+     Si prefieres correr el asistente directamente desde la carpeta donde lo descargaste (sin moverlo), haz doble clic en **`Run_JARVIS.exe`**. La primera vez que lo abras se encargará de crear y configurar el entorno virtual automáticamente, y luego abrirá la aplicación.
+   
+   - **Limpieza / Desinstalación:**
+     Si en algún momento deseas limpiar el sistema o desinstalar completamente el asistente, ejecuta **`Uninstall_JARVIS.exe`**. Esto eliminará de forma segura los entornos virtuales, caché y perfiles del navegador.
 
 ---
 
