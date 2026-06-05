@@ -107,30 +107,32 @@ class TestEmbeddingService:
 
 
 class TestDocumentIndexer:
-    def test_indexer_disabled_when_chromadb_missing(self):
-        indexer = DocumentIndexer(db_path=":memory:")
+    def test_indexer_disabled_when_chromadb_missing(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        import sys
+        monkeypatch.setitem(sys.modules, "chromadb", None)
+        indexer = DocumentIndexer(db_path=str(tmp_path / "chroma"))
         assert indexer.collection is None
         assert indexer.index_file(Path("nope.txt")) == 0
 
     def test_index_directory_empty(self, tmp_path: Path):
-        indexer = DocumentIndexer(db_path=":memory:")
+        indexer = DocumentIndexer(db_path=str(tmp_path / "chroma"))
         indexer.collection = None
         assert indexer.index_directory(tmp_path) == 0
 
-    def test_delete_document_no_chromadb(self):
-        indexer = DocumentIndexer(db_path=":memory:")
+    def test_delete_document_no_chromadb(self, tmp_path: Path):
+        indexer = DocumentIndexer(db_path=str(tmp_path / "chroma"))
         indexer.collection = None
         assert indexer.delete_document("/some/path") == -1
 
-    def test_stats_no_chromadb(self):
-        indexer = DocumentIndexer(db_path=":memory:")
+    def test_stats_no_chromadb(self, tmp_path: Path):
+        indexer = DocumentIndexer(db_path=str(tmp_path / "chroma"))
         indexer.collection = None
         stats = indexer.stats()
         assert stats["collection"] is None
         assert "error" in stats
 
-    def test_generate_id(self):
-        indexer = DocumentIndexer(db_path=":memory:")
+    def test_generate_id(self, tmp_path: Path):
+        indexer = DocumentIndexer(db_path=str(tmp_path / "chroma"))
         id1 = indexer._generate_id("/a.txt", 0)
         id2 = indexer._generate_id("/a.txt", 0)
         id3 = indexer._generate_id("/a.txt", 1)
@@ -144,14 +146,14 @@ class TestDocumentIndexer:
 
 
 class TestDocumentRetriever:
-    def test_no_chromadb(self):
-        retriever = DocumentRetriever(db_path=":memory:")
+    def test_no_chromadb(self, tmp_path: Path):
+        retriever = DocumentRetriever(db_path=str(tmp_path / "chroma"))
         retriever.collection = None
         assert retriever.search("hello") == []
         assert retriever.count() == 0
 
-    def test_empty_query_embedding(self, monkeypatch: pytest.MonkeyPatch):
-        retriever = DocumentRetriever(db_path=":memory:")
+    def test_empty_query_embedding(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        retriever = DocumentRetriever(db_path=str(tmp_path / "chroma"))
         monkeypatch.setattr(
             retriever.embedding_service, "get_embedding", lambda text: []
         )

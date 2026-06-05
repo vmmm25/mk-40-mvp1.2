@@ -101,3 +101,5 @@ scripts/migrate_tools.py
 
 .vs/
 *.exe
+
+.pytest_tmp/
