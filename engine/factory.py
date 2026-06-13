@@ -46,7 +46,7 @@ def check_and_autostart_lmstudio(ui: Any):
         if selected != "lmstudio":
             return
             
-        from lmstudio_control import is_server_running, launch_lmstudio, wait_for_server, load_model, get_server_status
+        from providers.lmstudio_control import is_server_running, launch_lmstudio, wait_for_server, load_model, get_server_status
         
         # 1. Start server if offline
         if not is_server_running():

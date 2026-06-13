@@ -35,25 +35,26 @@ def _detect_language(text: str) -> str:
 
 
 def _translate_to_goal_language(content: str, goal: str) -> str:
+    """Translate *content* into the language of *goal* using a single LLM call.
+
+    Merges language detection + translation into one call, avoiding
+    the previous 2-LLM-call pattern (detect + translate separately).
+    """
     if not goal:
         return content
     try:
-        target_lang = _detect_language(goal)
-        print(f"[Executor] 🌐 Translating to: {target_lang}")
-
         prompt = (
-            f"You are a professional translator. "
-            f"Translate the following text into {target_lang}.\n"
-            f"IMPORTANT:\n"
-            f"- Translate EVERYTHING, leave nothing in English\n"
-            f"- Keep all facts, numbers, and data intact\n"
-            f"- Keep the structure and formatting\n"
-            f"- Output ONLY the translated text, nothing else\n\n"
-            f"Text to translate:\n{content[:4000]}"
+            f"First, determine what language this goal text is written in:\n\n"
+            f"GOAL: {goal[:200]}\n\n"
+            f"Now, translate the following content into that same language. "
+            f"If it is already in that language, return it unchanged.\n\n"
+            f"CONTENT:\n{content[:4000]}\n\n"
+            f"Output ONLY the translated text, nothing else."
         )
         translated = ask_llm_sync(prompt, "").strip()
-        print(f"[Executor] ✅ Translation done ({target_lang})")
-        return translated
+        if translated:
+            print(f"[Executor] ✅ Translation done (merged detect+translate)")
+        return translated or content
     except Exception as e:
         print(f"[Executor] ⚠️ Translation failed: {e}")
         return content

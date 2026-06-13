@@ -225,15 +225,20 @@ class TestChat:
     async def test_chat_connection_error(self, provider):
         import aiohttp
         from aiohttp import ClientConnectorError
+        from aiohttp.client_reqrep import ConnectionKey
 
         try:
             conn = aiohttp.TCPConnector()
             conn_key = next(iter(conn._conns)) if conn._conns else None
         except Exception:
             conn_key = None
+        if conn_key is None:
+            conn_key = ConnectionKey(
+                "openrouter.ai", 443, True, None, None, None, None
+            )
         os_error = ConnectionRefusedError("Connection refused")
         connector_error = ClientConnectorError(
-            conn_key or ("openrouter.ai", 443),
+            conn_key,
             os_error,
         )
 

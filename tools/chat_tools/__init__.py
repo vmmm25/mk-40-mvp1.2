@@ -32,6 +32,7 @@ from .file_processor_tool import FileProcessorTool
 from .save_memory_tool import SaveMemoryTool
 from .process_with_openrouter_tool import ProcessWithOpenrouterTool
 from .terminal_control_tool import TerminalControlTool
+from .manage_skills_tool import ManageSkillsTool
 
 ALL_TOOLS = [
     EmailReadTool(),
@@ -68,4 +69,5 @@ ALL_TOOLS = [
     SaveMemoryTool(),
     ProcessWithOpenrouterTool(),
     TerminalControlTool(),
+    ManageSkillsTool(),
 ]

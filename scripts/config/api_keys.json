@@ -1,0 +1,9 @@
+{
+  "whisper_path": "C:\\Users\\lolpl\\Desktop\\02_Proyectos_Dev\\MARK-39_AI\\update-mk40\\scripts\\bin\\whisper\\main.exe",
+  "whisper_model": "C:\\Users\\lolpl\\Desktop\\02_Proyectos_Dev\\MARK-39_AI\\update-mk40\\scripts\\bin\\whisper\\ggml-base.bin",
+  "piper_path": "C:\\Users\\lolpl\\Desktop\\02_Proyectos_Dev\\MARK-39_AI\\update-mk40\\scripts\\bin\\piper\\piper\\piper.exe",
+  "piper_model": "C:\\Users\\lolpl\\Desktop\\02_Proyectos_Dev\\MARK-39_AI\\update-mk40\\scripts\\bin\\piper\\es_MX-claude-high.onnx",
+  "voice_wrapper_enabled": true,
+  "stt_engine": "whisper",
+  "tts_engine": "piper"
+}

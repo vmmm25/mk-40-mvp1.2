@@ -85,8 +85,8 @@ class JarvisChat:
             self.ui.write_log(f"Jarvis: {response.content}")
             response_content = response.content
 
-            if len(self._history) > 50:
-                self._history = [self._history[0]] + self._history[-30:]
+            # ── History cap: keep system prompt + last N exchanges ──
+            self._trim_history(max_messages=50)
 
         except Exception as e:
             self.ui.write_log(f"ERR: {str(e)}")
@@ -122,6 +122,19 @@ class JarvisChat:
             else:
                 self.ui.set_state("MUTED")
         return response_content
+
+    def _trim_history(self, max_messages: int = 50):
+        """Keep history bounded: system prompt + last N messages.
+
+        Uses FIFO eviction: older user/assistant exchanges are dropped.
+        The system prompt (index 0) is always preserved.
+        """
+        if len(self._history) <= max_messages:
+            return
+        # Preserve system prompt (index 0), drop oldest messages beyond cap
+        # Keep system + last (max_messages - 1) messages
+        self._history = [self._history[0]] + self._history[-(max_messages - 1):]
+        logger.info(f"History trimmed to {len(self._history)} messages")
 
     def _build_chat_system_prompt(self) -> str:
         from datetime import datetime

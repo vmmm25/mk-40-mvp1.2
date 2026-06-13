@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 
 from memory.config_manager import load_config, save_config, get_model, set_model
 from ui.theme import Theme as C, PROVIDER_COLORS, get_openrouter_color as _get_openrouter_color
-from lmstudio_control import (
+from providers.lmstudio_control import (
     find_lmstudio_path, find_lms_cli_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
     is_server_running, get_server_status,
@@ -451,6 +451,10 @@ class ConfigToolbar(QWidget):
         self._voice_enabled_chk.setChecked(cfg.get("voice_wrapper_enabled", False))
         save_row.addWidget(self._voice_enabled_chk)
         
+        self._auto_detect_btn = self._build_btn("🔍 AUTO-DETECTAR LOCALES", C.ACC, h=30)
+        self._auto_detect_btn.clicked.connect(self._scan_local_engines)
+        save_row.addWidget(self._auto_detect_btn)
+        
         self._save_voice_btn = self._build_btn("GUARDAR AJUSTES", C.GREEN, h=30)
         self._save_voice_btn.clicked.connect(self._on_voice_settings_changed)
         save_row.addWidget(self._save_voice_btn)
@@ -539,6 +543,63 @@ class ConfigToolbar(QWidget):
         if file_path:
             self._piper_model_edit.setText(os.path.normpath(file_path))
             self._on_voice_settings_changed()
+
+    def _scan_local_engines(self):
+        """Scans the project directory for Whisper and Piper executables and models."""
+        from pathlib import Path
+        import os
+        import platform
+
+        base_dir = Path(__file__).resolve().parent.parent
+        search_dirs = [
+            base_dir / "bin",
+            base_dir / "scripts" / "bin",
+            base_dir / "habilidades"
+        ]
+
+        is_windows = platform.system() == "Windows"
+        whisper_exe_name = "main.exe" if is_windows else "main"
+        piper_exe_name = "piper.exe" if is_windows else "piper"
+
+        found_whisper_path = ""
+        found_whisper_model = ""
+        found_piper_path = ""
+        found_piper_model = ""
+
+        for s_dir in search_dirs:
+            if not s_dir.exists():
+                continue
+            for root, dirs, files in os.walk(s_dir):
+                for file in files:
+                    # Whisper Path
+                    if file == whisper_exe_name and not found_whisper_path:
+                        # Make sure it's not some random main.exe
+                        if "whisper" in str(root).lower() or "bin" in str(root).lower():
+                            found_whisper_path = os.path.join(root, file)
+                    # Piper Path
+                    elif file == piper_exe_name and not found_piper_path:
+                        found_piper_path = os.path.join(root, file)
+                    # Whisper Model
+                    elif file.endswith(".bin") and "ggml" in file.lower() and not found_whisper_model:
+                        found_whisper_model = os.path.join(root, file)
+                    # Piper Model
+                    elif file.endswith(".onnx") and not found_piper_model:
+                        found_piper_model = os.path.join(root, file)
+
+        if found_whisper_path: self._whisper_path_edit.setText(os.path.normpath(found_whisper_path))
+        if found_whisper_model: self._whisper_model_edit.setText(os.path.normpath(found_whisper_model))
+        if found_piper_path: self._piper_path_edit.setText(os.path.normpath(found_piper_path))
+        if found_piper_model: self._piper_model_edit.setText(os.path.normpath(found_piper_model))
+
+        self._on_voice_settings_changed()
+        
+        self._auto_detect_btn.setText("✓ DETECTADOS")
+        self._auto_detect_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C.GREEN}; color: {C.DARK};
+                border: 1px solid {C.GREEN}; border-radius: 4px; padding: 2px 10px; font-weight: bold;
+            }}
+        """)
 
     # ── Tab: Ollama Tools + Commands ─────────────────────────────────
     def _build_ollama_tab(self) -> QWidget:

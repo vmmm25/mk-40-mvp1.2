@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import logging
+import numpy as np
 import sounddevice as sd
 from array import array
 
@@ -238,7 +239,7 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
         logger.info("Transcribing with Gemini (Cloud)...")
         api_key = cfg.get("gemini_api_key", "")
         if not api_key:
-            raise ValueError("Gemini API key is required for Gemini Cloud transcription.")
+            raise ValueError("Falta configurar la Gemini API Key para usar la transcripción en la nube. Configúrala en la pestaña GEM de los ajustes.")
             
         from google import genai
         from google.genai import types
@@ -265,10 +266,16 @@ async def _transcribe_audio(wav_path: str, cfg: dict) -> str:
             raw_text = response.text.strip() if response.text else ""
             return _clean_whisper_transcript(raw_text)
         except Exception as ge:
-            logger.warning(f"Gemini Cloud STT failed ({ge}). Falling back to local Whisper...")
-            cfg_fallback = dict(cfg)
-            cfg_fallback["stt_engine"] = "whisper"
-            return await _transcribe_audio(wav_path, cfg_fallback)
+            whisper_p = cfg.get("whisper_path", "")
+            whisper_m = cfg.get("whisper_model", "")
+            if whisper_p and os.path.exists(whisper_p) and whisper_m and os.path.exists(whisper_m):
+                logger.warning(f"Gemini Cloud STT failed ({ge}). Falling back to local Whisper...")
+                cfg_fallback = dict(cfg)
+                cfg_fallback["stt_engine"] = "whisper"
+                return await _transcribe_audio(wav_path, cfg_fallback)
+            else:
+                logger.error(f"Gemini Cloud STT failed and Whisper is not configured: {ge}")
+                raise ge
 
 
 async def _synthesize_with_piper_fallback(text: str, cfg: dict, reason: str) -> bytes | None:
@@ -377,3 +384,118 @@ async def _synthesize_speech_in_memory(text: str, cfg: dict) -> bytes | None:
             return await _synthesize_with_piper_fallback(text, cfg, "No audio data returned")
         except Exception as ge:
             return await _synthesize_with_piper_fallback(text, cfg, str(ge))
+
+
+# ---------------------------------------------------------------------------
+# Voice Activity Detection (ported from Mark-XL main.py)
+# ---------------------------------------------------------------------------
+
+class VADBuffer:
+    """Energy-based VAD: buffers audio until end of utterance.
+
+    Uses hysteresis thresholds so the detector doesn't flicker:
+      - speech starts when RMS > speech_thresh
+      - speech ends only when RMS < silence_thresh (half of speech_thresh)
+    The gap between the two thresholds prevents mid-sentence cuts on
+    natural pauses and quiet consonants.
+    """
+
+    def __init__(
+        self,
+        sample_rate:    int   = 16_000,
+        silence_sec:    float = 0.7,    # silence after last word → send to STT
+        speech_thresh:  float = 0.008,  # RMS above this = speech
+        silence_thresh: float = 0.004,  # RMS below this = silence (hysteresis)
+        min_speech_sec: float = 0.3,
+        max_speech_sec: float = 30.0,
+    ):
+        self._sr            = sample_rate
+        self._sil_n         = int(silence_sec * sample_rate)
+        self._speech_thresh = speech_thresh
+        self._sil_thresh    = silence_thresh
+        self._min_n         = int(min_speech_sec * sample_rate)
+        self._max_n         = int(max_speech_sec * sample_rate)
+        self._buf:          list[np.ndarray] = []
+        self._in_spch       = False
+        self._sil_cnt       = 0
+
+    def process(self, chunk: np.ndarray) -> np.ndarray | None:
+        """Feed one audio chunk (float32 mono).
+
+        Returns complete utterance when speech ends, otherwise None.
+        """
+        rms     = float(np.sqrt(np.mean(chunk ** 2)))
+        total_n = sum(len(c) for c in self._buf)
+
+        if rms > self._speech_thresh:
+            self._in_spch = True
+            self._sil_cnt = 0
+            self._buf.append(chunk.copy())
+        elif self._in_spch:
+            self._buf.append(chunk.copy())
+            if rms < self._sil_thresh:
+                self._sil_cnt += len(chunk)
+
+            if self._sil_cnt >= self._sil_n or total_n >= self._max_n:
+                audio         = np.concatenate(self._buf)
+                self._buf     = []
+                self._in_spch = False
+                self._sil_cnt = 0
+                if len(audio) >= self._min_n:
+                    return audio
+        return None
+
+    def reset(self):
+        """Reset VAD state (call when starting a new listening session)."""
+        self._buf     = []
+        self._in_spch = False
+        self._sil_cnt = 0
+
+
+# ---------------------------------------------------------------------------
+# Sentence streaming for TTS (ported from Mark-XL core/llm_client.py)
+# ---------------------------------------------------------------------------
+
+# Matches a sentence boundary: [.!?] followed by whitespace, or a blank line.
+# Avoids splitting on decimals (3.5) because those have no space after the dot.
+_SENTENCE_END_RE = re.compile(r'(?<=[.!?])\s+|(?<=\n)\s*\n')
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split text into complete sentences, preserving sentence-ending punctuation.
+
+    Returns a list of sentences.  Trailing whitespace or incomplete trailing
+    text is discarded (it will be appended to the next chunk in streaming).
+    """
+    if not text:
+        return []
+    parts = _SENTENCE_END_RE.split(text)
+    sentences = []
+    buf = ""
+    for part in parts:
+        buf += part
+        # A sentence is complete if it ends with [.!?] followed by whitespace
+        # (which was consumed by the split).  We check for sentence-ending
+        # punctuation in buf minus trailing whitespace.
+        if buf.rstrip() and buf.rstrip()[-1] in ".!?":
+            sentences.append(buf.strip())
+            buf = ""
+    return sentences
+
+
+def iter_streaming_sentences() -> tuple[list[str], str]:
+    """Generator helper for streaming LLM output into sentences.
+
+    Usage:
+        buf = ""
+        for chunk in llm_stream:
+            buf += chunk
+            for sent in iter_streaming_sentences(buf):
+                yield sent
+        # After stream ends, yield remaining buf if any
+
+    Note: this is a placeholder signature showing the pattern.
+    The actual integration belongs in the provider streaming code.
+    """
+    # This function documents the pattern; actual usage is in providers
+    pass

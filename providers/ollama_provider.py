@@ -11,6 +11,10 @@ import asyncio
 import json
 import logging
 import random
+import subprocess
+import sys
+import time
+from pathlib import Path
 from typing import Any, AsyncGenerator
 
 import aiohttp
@@ -370,7 +374,7 @@ class OllamaProvider(BaseProvider):
             return False
 
     async def check_server(self) -> bool:
-        """Check if Ollama server is running."""
+        """Check if Ollama server is running (ping /api/tags)."""
         try:
             session = await self._get_session()
             async with session.get(
@@ -380,6 +384,93 @@ class OllamaProvider(BaseProvider):
                 return resp.status == 200
         except Exception:
             return False
+
+    # ------------------------------------------------------------------
+    # Auto-start (ported from Mark-XL core/llm_client.py)
+    # ------------------------------------------------------------------
+
+    async def ensure_running(self, timeout: int = 15) -> bool:
+        """Auto-launch 'ollama serve' if not running, wait until reachable.
+
+        Returns True if the server is reachable after the attempt.
+        """
+        if await self.check_server():
+            return True
+
+        log.warning("Ollama not running — launching 'ollama serve'…")
+        try:
+            kwargs: dict = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+            subprocess.Popen(["ollama", "serve"], **kwargs)
+        except FileNotFoundError:
+            log.error("'ollama' command not found. Install Ollama from https://ollama.com")
+            return False
+        except Exception as e:
+            log.error("Could not launch Ollama: %s", e)
+            return False
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            await asyncio.sleep(1.0)
+            if await self.check_server():
+                log.info("Ollama started successfully.")
+                return True
+
+        log.error("Ollama did not respond within %ds timeout.", timeout)
+        return False
+
+    # ------------------------------------------------------------------
+    # KV cache warmup (ported from Mark-XL core/llm_client.py)
+    # ------------------------------------------------------------------
+
+    async def warmup(self, system_prompt: str | None = None) -> bool:
+        """Pre-load model AND prime Ollama's KV prefix cache.
+
+        Ollama caches the KV attention state of the prompt prefix across
+        requests.  By sending the static system prompt during warmup with
+        keep_alive=-1, every subsequent request only needs to evaluate the
+        small delta (user message ± time context) instead of the full
+        300-500 token system prompt.
+
+        This drops first-token latency from ~17s to <1s after warmup.
+        """
+        url = self.base_url
+        log.info("Warming up '%s' (Ollama)…", self.model)
+
+        messages: list[dict] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": "hi"})
+
+        payload = {
+            "model":      self.model,
+            "messages":   messages,
+            "stream":     False,
+            "keep_alive": -1,
+            "options":    {"num_predict": 1, "num_gpu": 99},
+        }
+        try:
+            session = await self._get_session()
+            async with session.post(
+                f"{url}/api/chat",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=180),
+            ) as resp:
+                if resp.status == 200:
+                    log.info("'%s' loaded and KV cache primed.", self.model)
+                    return True
+                log.warning("Warmup returned status %d", resp.status)
+                return False
+        except Exception as e:
+            log.warning("Warmup failed (non-fatal): %s", e)
+            return False
+
+    async def ensure_running_and_warmup(self, system_prompt: str | None = None) -> bool:
+        """Convenience: ensure server is running, then warmup the model."""
+        if not await self.ensure_running():
+            return False
+        return await self.warmup(system_prompt)
 
 
 register_provider("ollama", OllamaProvider)

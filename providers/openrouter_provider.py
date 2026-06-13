@@ -11,12 +11,16 @@ import json
 import aiohttp
 from typing import Any, AsyncGenerator, Callable
 
-from .base import BaseProvider, Message, ProviderConfig, ToolCall, ToolResult
+from .base import BaseProvider, Message, ProviderConfig, ToolCall, ToolResult, request_with_retry
 from . import register_provider
+from core.rate_limiter import rate_limiter
 
 
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+
+# Rate limit: 30 requests per 60s window (conservative for OpenRouter free tier)
+rate_limiter.set_limit("openrouter:chat", max_requests=30, window_seconds=60)
 
 
 class OpenRouterProvider(BaseProvider):
@@ -143,20 +147,19 @@ class OpenRouterProvider(BaseProvider):
             if tools:
                 payload["tools"] = self.convert_tools_openai(tools)
 
-            async with session.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=120),
-            ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    return Message(
-                        role="assistant",
-                        content=f"OpenRouter error ({resp.status}): {error_text[:200]}"
-                    )
-                data = await resp.json()
-                return self._openrouter_response_to_message(data)
+            async with rate_limiter.acquire("openrouter:chat"):
+                status, body = await request_with_retry(
+                    session, f"{self.base_url}/chat/completions",
+                    headers=headers, data=payload,
+                    timeout=aiohttp.ClientTimeout(total=120),
+                    max_attempts=3,
+                )
+            if status != 200:
+                return Message(
+                    role="assistant",
+                    content=f"OpenRouter error ({status}): {body[:200]}"
+                )
+            return self._openrouter_response_to_message(json.loads(body))
 
         except aiohttp.ClientConnectorError:
             return Message(

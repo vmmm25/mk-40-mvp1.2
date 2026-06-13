@@ -140,7 +140,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
     return "write"
 
 def _write(description: str, language: str, output_path: str, player=None) -> tuple[str, Path]:
-    from or_client import client
+    from providers.or_client import client
     lang  = language or "python"
 
     prompt = f"""You are an expert {lang} developer.
@@ -164,7 +164,7 @@ Code:"""
 
 
 def _fix_code(code: str, error_output: str, description: str) -> str:
-    from or_client import client
+    from providers.or_client import client
     prompt = f"""You are an expert debugger.
 The code below failed with the following error. Fix it.
 Return ONLY the corrected code — no explanation, no markdown, no backticks.
@@ -301,7 +301,7 @@ def _edit_action(file_path, instruction, player) -> str:
     if player:
         player.write_log("[Code] Editing file...")
 
-    from or_client import client
+    from providers.or_client import client
     prompt = f"""You are an expert code editor.
 Apply the following change to the code below.
 Return ONLY the complete updated code — no explanation, no markdown, no backticks.
@@ -335,7 +335,7 @@ def _explain_action(file_path, code, player) -> str:
     if player:
         player.write_log("[Code] Analyzing code...")
 
-    from or_client import client
+    from providers.or_client import client
     prompt = f"""Explain what this code does in simple, clear language.
 Focus on: what it does, how it works, and any important details.
 Be concise — 3 to 6 sentences maximum.
@@ -374,7 +374,7 @@ def _optimize_action(file_path, code, language, output_path, player) -> str:
     if player:
         player.write_log("[Code] Optimizing code...")
 
-    from or_client import client
+    from providers.or_client import client
     lang  = language or "python"
 
     prompt = f"""You are an expert {lang} developer and code reviewer.

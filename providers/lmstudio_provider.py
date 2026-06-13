@@ -12,7 +12,7 @@ import json
 import aiohttp
 from typing import Any, AsyncGenerator
 
-from .base import BaseProvider, Message, ProviderConfig, ToolCall, ToolResult
+from .base import BaseProvider, Message, ProviderConfig, ToolCall, ToolResult, request_with_retry
 from . import register_provider
 
 
@@ -149,20 +149,18 @@ class LMStudioProvider(BaseProvider):
             if tools:
                 payload["tools"] = self.convert_tools_openai(tools)
 
-            async with session.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
+            status, body = await request_with_retry(
+                session, f"{self.base_url}/chat/completions",
+                headers=headers, data=payload,
                 timeout=aiohttp.ClientTimeout(total=120),
-            ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    return Message(
-                        role="assistant",
-                        content=f"LM Studio error ({resp.status}): {error_text[:200]}"
-                    )
-                data = await resp.json()
-                return self._lmstudio_response_to_message(data)
+                max_attempts=3,
+            )
+            if status != 200:
+                return Message(
+                    role="assistant",
+                    content=f"LM Studio error ({status}): {body[:200]}"
+                )
+            return self._lmstudio_response_to_message(json.loads(body))
 
         except aiohttp.ClientConnectorError:
             return Message(

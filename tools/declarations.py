@@ -607,5 +607,28 @@ TOOL_DECLARATIONS = [
             "required": ["command"]
         }
     },
+    {
+        "name": "manage_skills",
+        "description": "Manages JARVIS skills (habilidades). Allows listing, installing, updating, or removing skills.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {
+                    "type": "STRING",
+                    "description": "The action to perform: 'list', 'install', 'update', or 'remove'",
+                    "enum": ["list", "install", "update", "remove"]
+                },
+                "github_repo": {
+                    "type": "STRING",
+                    "description": "The GitHub repository to install (e.g. 'owner/repo' or URL). Required if action is 'install'."
+                },
+                "skill_name": {
+                    "type": "STRING",
+                    "description": "The name of the skill to update or remove. Required if action is 'update' or 'remove'."
+                }
+            },
+            "required": ["action"]
+        }
+    },
 ]
 

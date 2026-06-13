@@ -6,11 +6,18 @@ Supports both real-time audio (Gemini Live) and text-based chat for other provid
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
+import random
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Callable
+
+import aiohttp
+
+log = logging.getLogger(__name__)
 
 _CTRL_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
@@ -83,6 +90,87 @@ class ProviderConfig:
                                 "temperature", "max_tokens", "os_system",
                                 "system_prompt")},
         )
+
+
+# ---------------------------------------------------------------------------
+# Shared retry helper — used by OpenRouter, LM Studio, and other HTTP providers
+# ---------------------------------------------------------------------------
+
+
+async def request_with_retry(
+    session: aiohttp.ClientSession,
+    url: str,
+    *,
+    headers: dict | None = None,
+    data: dict | None = None,
+    timeout: aiohttp.ClientTimeout | None = None,
+    max_attempts: int = 3,
+) -> tuple[int, str]:
+    """POST to *url* with exponential backoff retry.
+
+    Retries on connection/timeout errors (ClientError, TimeoutError) and
+    transient HTTP statuses (429, 5xx).  See:
+    https://platform.openai.com/docs/guides/error-codes/api-errors
+
+    Args:
+        session:  aiohttp ClientSession
+        url:      Full request URL
+        headers:  Optional HTTP headers
+        json:     Optional JSON-serialisable body
+        timeout:  Custom timeout (defaults to 120 s total)
+        max_attempts: Maximum retry count (default 3)
+
+    Returns:
+        Tuple of ``(status_code, body_text)``
+
+    Raises:
+        aiohttp.ClientError: if all attempts fail with client-side errors
+    """
+    if timeout is None:
+        timeout = aiohttp.ClientTimeout(total=120)
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            async with session.post(
+                url, headers=headers, json=data, timeout=timeout
+            ) as resp:
+                # Retry on rate limits and common server errors
+                if resp.status in {429, 500, 502, 503, 504}:
+                    if attempt < max_attempts:
+                        body = await resp.text(errors="replace")
+                        log.warning(
+                            "POST %s returned %d (attempt %d/%d): %.100s",
+                            url, resp.status,
+                            attempt, max_attempts, body,
+                        )
+                        await asyncio.sleep(_backoff(attempt))
+                        continue
+                # Read body — prefer JSON for 2xx, text for errors
+                if 200 <= resp.status < 300:
+                    data = await resp.json()
+                    if isinstance(data, dict):
+                        body = json.dumps(data)
+                    else:
+                        body = str(data)
+                else:
+                    body = await resp.text(errors="replace")
+                return resp.status, body
+
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            if attempt == max_attempts:
+                raise
+            log.warning(
+                "POST %s failed (attempt %d/%d): %s",
+                url, attempt, max_attempts, e,
+            )
+            await asyncio.sleep(_backoff(attempt))
+
+    return 0, "Max retries exceeded"
+
+
+def _backoff(attempt: int) -> float:
+    """Exponential backoff with jitter: ``2^attempt + random(0, 1)``."""
+    return (2 ** attempt) + random.random()
 
 
 class BaseProvider(ABC):

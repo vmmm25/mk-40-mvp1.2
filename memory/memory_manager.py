@@ -212,4 +212,5 @@ def forget(key: str, category: str = "notes") -> str:
     return f"Not found: {category}/{key}"
 
 
+# Deprecated alias kept for backward compatibility — prefer `forget()` directly.
 forget_memory = forget

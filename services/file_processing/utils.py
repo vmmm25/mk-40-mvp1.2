@@ -16,7 +16,7 @@ def get_output_path(src: Path, suffix: str, new_ext: str = None) -> Path:
     return src.parent / name
 
 def gemini_client():
-    from or_client import client
+    from providers.or_client import client
     # Helper to generate content, adapting to our central client where needed
     # We will just expose a simple interface matching the old _GeminiModel
     class GeminiWrapper:

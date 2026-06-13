@@ -32,7 +32,7 @@ from memory.config_manager import load_config, save_config, get_model, set_model
 from ui.theme import Theme as C, qcol, PROVIDER_COLORS, get_openrouter_color as _get_openrouter_color
 from ui.wave_canvas import WaveCanvas
 from ui.config_toolbar import ConfigToolbar, _OR_FREE_MODELS, _populate_or_combo, _COMBO_STYLE
-from lmstudio_control import (
+from providers.lmstudio_control import (
     find_lmstudio_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
     is_server_running, get_server_status,
@@ -887,6 +887,14 @@ class MainWindow(QMainWindow):
         lay.addWidget(_ft_btn("⟳ RESET", C.ACC, "Restart the AI engine", self._on_reset))
         lay.addWidget(_ft_btn("⚙ CONFIG", C.PRI, "Open settings panel", self._on_toggle_config))
 
+        # ── Persistent mute indicator ──
+        self._mute_indicator = QLabel("● MIC ACTIVE")
+        self._mute_indicator.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._mute_indicator.setStyleSheet(
+            f"color: {C.GREEN}; background: transparent; padding: 0px 6px;"
+        )
+        lay.addWidget(self._mute_indicator)
+
         def _fl(txt, color=C.TEXT_MED):
             l = QLabel(txt); l.setFont(QFont("Segoe UI", 10))
             l.setStyleSheet(f"color: {color}; background: transparent;")
@@ -1020,12 +1028,28 @@ class MainWindow(QMainWindow):
         self._muted = not self._muted
         self.hud.muted = self._muted
         self._style_mute_btn()
+        self._update_mute_indicator()
         if self._muted:
             self._apply_state("MUTED")
             self._log.append_log("SYS: Microphone muted.")
         else:
             self._apply_state("LISTENING")
             self._log.append_log("SYS: Microphone active.")
+
+    def _update_mute_indicator(self):
+        """Actualiza el indicador persistente de mute en el footer."""
+        if not hasattr(self, '_mute_indicator'):
+            return
+        if self._muted:
+            self._mute_indicator.setText("● MIC MUTED")
+            self._mute_indicator.setStyleSheet(
+                f"color: {C.MUTED_C}; background: transparent; padding: 0px 6px;"
+            )
+        else:
+            self._mute_indicator.setText("● MIC ACTIVE")
+            self._mute_indicator.setStyleSheet(
+                f"color: {C.GREEN}; background: transparent; padding: 0px 6px;"
+            )
 
     def _style_mute_btn(self):
         if self._muted:

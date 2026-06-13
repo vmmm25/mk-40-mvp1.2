@@ -42,7 +42,7 @@ class ProcessWithOpenrouterTool(BaseTool):
 
     def execute(self, args: dict, ui: Any) -> str:
         try:
-            from or_client import client
+            from providers.or_client import client
             prompt = args.get('prompt', '').strip()
             if not prompt:
                 return 'No prompt provided.'

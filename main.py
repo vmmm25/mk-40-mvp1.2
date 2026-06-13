@@ -71,6 +71,17 @@ def main():
 
     def runner():
         ui.wait_for_api_key()
+        
+        # Initialize and load dynamic skills
+        try:
+            from services.skills.manager import SkillManager
+            skill_manager = SkillManager(ui)
+            skill_manager.scan_and_load()
+            skill_manager.check_updates_background()
+        except Exception as e:
+            logger.exception("Error initializing Skills system")
+            ui.write_log(f"SYS: Error al inicializar el sistema de habilidades: {e}")
+            
         while True:
             engine_stop.clear()
             engine = create_engine(ui)

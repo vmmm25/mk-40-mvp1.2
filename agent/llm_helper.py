@@ -13,6 +13,23 @@ from pathlib import Path
 from memory.config_manager import load_config, get_model
 from providers import create_provider, ProviderConfig, Message
 
+# Cached Gemini client for fallback — avoids re-importing google SDK on every failure
+_gemini_client = None
+
+
+def _get_gemini_client():
+    """Lazy-init and cache the Gemini SDK client."""
+    global _gemini_client
+    if _gemini_client is not None:
+        return _gemini_client
+    cfg = load_config()
+    gemini_key = cfg.get("gemini_api_key", "")
+    if not gemini_key:
+        return None
+    from google import genai
+    _gemini_client = genai.Client(api_key=gemini_key)
+    return _gemini_client
+
 
 def _get_provider():
     """Create a provider instance based on saved config."""
@@ -65,15 +82,12 @@ async def ask_llm(prompt: str, system_instruction: str = "") -> str:
 
     except Exception as e:
         print(f"[LLM] ❌ Primary provider error: {e}")
-        # Fallback: try direct Gemini if configured
+        # Fallback: try direct Gemini if configured (cached client)
         try:
-            cfg = load_config()
-            gemini_key = cfg.get("gemini_api_key", "")
-            if gemini_key:
+            client = _get_gemini_client()
+            if client is not None:
                 print("[LLM] ⚠️ Falling back to direct Gemini call...")
-                from google import genai
                 from google.genai import types
-                client = genai.Client(api_key=gemini_key)
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=prompt,
