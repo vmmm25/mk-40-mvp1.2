@@ -33,6 +33,8 @@ from .save_memory_tool import SaveMemoryTool
 from .process_with_openrouter_tool import ProcessWithOpenrouterTool
 from .terminal_control_tool import TerminalControlTool
 from .manage_skills_tool import ManageSkillsTool
+from .knowledge_tools import SearchKnowledgeTool, InstallKnowledgeRepoTool
+from .skill_md_tools import SearchSkillMdTool, InstallSkillMdRepoTool
 
 ALL_TOOLS = [
     EmailReadTool(),
@@ -70,4 +72,8 @@ ALL_TOOLS = [
     ProcessWithOpenrouterTool(),
     TerminalControlTool(),
     ManageSkillsTool(),
+    SearchKnowledgeTool(),
+    InstallKnowledgeRepoTool(),
+    SearchSkillMdTool(),
+    InstallSkillMdRepoTool(),
 ]

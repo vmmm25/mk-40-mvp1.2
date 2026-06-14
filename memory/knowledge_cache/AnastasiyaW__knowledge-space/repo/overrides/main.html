@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <nav class="ks-topnav">
+    <a href="{{ config.site_url }}" class="ks-topnav__link">Home</a>
+    <a href="{{ config.site_url }}knowledge-base/" class="ks-topnav__link">Knowledge Base</a>
+    <a href="{{ config.site_url }}blog/" class="ks-topnav__link">Blog</a>
+  </nav>
+  <button class="ks-scroll-top" id="ks-scroll-top" title="Scroll to top">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+  <script>
+    (function(){
+      var btn = document.getElementById('ks-scroll-top');
+      if (!btn) return;
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 300) btn.classList.add('visible');
+        else btn.classList.remove('visible');
+      });
+      btn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Pin topnav right below the sticky header
+      var header = document.querySelector('.md-header');
+      var topnav = document.querySelector('.ks-topnav');
+      if (header && topnav) {
+        var pin = function() { topnav.style.top = header.offsetHeight + 'px'; };
+        pin();
+        window.addEventListener('resize', pin);
+      }
+    })();
+  </script>
+{% endblock %}
+
+{% block extrahead %}
+  {{ super() }}
+  <link rel="icon" href="{{ config.site_url }}assets/favicon.png" type="image/png" sizes="32x32">
+  <!-- Cloudflare Web Analytics — SRI not used: Cloudflare updates beacon.min.js in-place -->
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f25c967baa8f46e9883f279471fee824"}'></script>
+  <link rel="icon" href="{{ config.site_url }}assets/favicon-16.png" type="image/png" sizes="16x16">
+  <style>
+    .md-search { max-width: 14rem; }
+    .md-header__source { display: flex; gap: 0; max-width: none; width: auto; align-items: stretch; }
+    .md-header__source .md-source { min-width: 0; width: 12rem; }
+    .md-header__source .md-source--secondary { border-left: 1px solid rgba(255,255,255,0.15); }
+
+    /* Top nav bar — lives inside md-header (block tabs), stays sticky with header */
+    .ks-topnav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: linear-gradient(180deg, rgba(30, 20, 50, 0.98) 0%, rgba(18, 12, 35, 0.99) 100%);
+      border-bottom: 1px solid rgba(187, 134, 252, 0.12);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+    [data-md-color-scheme="default"] .ks-topnav {
+      background: linear-gradient(180deg, rgba(248, 245, 255, 0.98) 0%, rgba(240, 235, 252, 0.99) 100%);
+      border-bottom-color: rgba(98, 0, 234, 0.08);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    .ks-topnav__link {
+      padding: 0.45rem 1.2rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      color: rgba(220, 200, 255, 0.95);
+      background: linear-gradient(180deg, rgba(80, 50, 140, 0.7) 0%, rgba(50, 25, 100, 0.85) 100%);
+      border: 1px solid rgba(140, 100, 200, 0.35);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    [data-md-color-scheme="default"] .ks-topnav__link {
+      color: rgba(70, 20, 160, 0.9);
+      background: linear-gradient(180deg, rgba(120, 80, 200, 0.12) 0%, rgba(98, 0, 234, 0.06) 100%);
+      border-color: rgba(98, 0, 234, 0.2);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+    .ks-topnav__link:hover {
+      color: #ffc107;
+      background: linear-gradient(180deg, rgba(100, 65, 160, 0.8) 0%, rgba(60, 30, 120, 0.9) 100%);
+      border-color: rgba(255, 193, 7, 0.4);
+      box-shadow: 0 4px 14px rgba(255, 193, 7, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+    [data-md-color-scheme="default"] .ks-topnav__link:hover {
+      color: #e6a800;
+      background: linear-gradient(180deg, rgba(255, 193, 7, 0.12) 0%, rgba(255, 193, 7, 0.04) 100%);
+      border-color: rgba(255, 193, 7, 0.35);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      transform: translateY(-1px);
+    }
+    .ks-topnav__link:active {
+      transform: translateY(0.5px);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    .ks-topnav__link--active {
+      background: rgba(187, 134, 252, 0.2) !important;
+      border-color: rgba(187, 134, 252, 0.4) !important;
+      color: #bb86fc !important;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      // Make site title clickable
+      var title = document.querySelector('.md-header__topic:first-child');
+      if (title) { title.style.cursor = 'pointer'; title.addEventListener('click', function(){ window.location = '/'; }); }
+
+      // Fetch stats for secondary repo
+      var repo = document.getElementById('source-secondary-repo');
+      if (!repo) return;
+      var cached = null;
+      try { cached = JSON.parse(sessionStorage.getItem('__source_secondary')); } catch(e) {}
+      if (!cached) cached = {stars: 7, forks: 1};
+      function renderFacts(data) {
+        if (!data || data.stars === undefined) return;
+        var ul = document.createElement('ul');
+        ul.className = 'md-source__facts';
+        var s = document.createElement('li');
+        s.className = 'md-source__fact md-source__fact--stars';
+        s.textContent = data.stars > 999 ? Math.round(data.stars/1000)+'k' : String(data.stars);
+        ul.appendChild(s);
+        var f = document.createElement('li');
+        f.className = 'md-source__fact md-source__fact--forks';
+        f.textContent = data.forks > 999 ? Math.round(data.forks/1000)+'k' : String(data.forks);
+        ul.appendChild(f);
+        repo.appendChild(ul);
+        repo.classList.add('md-source__repository--active');
+      }
+      if (cached) renderFacts(cached);
+      fetch('https://api.github.com/repos/AnastasiyaW/claude-code-config')
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if (d.stargazers_count===undefined) return;
+          var data={stars:d.stargazers_count,forks:d.forks_count};
+          try{sessionStorage.setItem('__source_secondary',JSON.stringify(data))}catch(e){}
+          if(!cached) renderFacts(data);
+        }).catch(function(){});
+
+
+      // ── Reorder sidebar by text content ──
+      setTimeout(function() {
+        var navList = document.querySelector('.md-nav--primary > .md-nav__list');
+        if (!navList) return;
+
+        // Match by trimmed first-line text of each nav item
+        var rules = [
+          { match: 'home',                    rank: 0, hide: true },
+          { match: 'knowledge base',          rank: 0, hide: true },
+          { match: 'blog',                    rank: 0, hide: true },
+          { match: 'for ai agents',            rank: 1, style: 'secondary' },
+          { match: 'contributing',            rank: 2, style: 'secondary', rename: 'How to Contribute' },
+          { match: 'privacy',                 rank: 3, style: 'secondary', sep: true },
+          { match: 'happyin knowledge space', rank: 0, hide: true },
+        ];
+
+        navList.style.display = 'flex';
+        navList.style.flexDirection = 'column';
+
+        Array.from(navList.children).forEach(function(item) {
+          // Get the direct label text (first link or label)
+          var label = item.querySelector(':scope > a, :scope > .md-nav__link, :scope > div > a');
+          var text = label ? label.textContent.trim().toLowerCase() : item.textContent.trim().split('\n')[0].toLowerCase();
+
+          var rule = null;
+          for (var i = 0; i < rules.length; i++) {
+            if (text === rules[i].match || text.indexOf(rules[i].match) === 0) {
+              rule = rules[i];
+              break;
+            }
+          }
+
+          if (rule) {
+            if (rule.hide) { item.style.display = 'none'; return; }
+            item.style.order = rule.rank;
+            if (rule.sep) item.classList.add('ks-separator');
+            if (label) label.classList.add(rule.style === 'primary' ? 'ks-btn-primary' : 'ks-btn-secondary');
+            if (rule.rename && label) label.textContent = rule.rename;
+          } else {
+            item.style.order = 20;
+          }
+        });
+
+        // Sort articles alphabetically within each domain section
+        navList.querySelectorAll('.md-nav__item--section .md-nav .md-nav__list, .md-nav__item--nested .md-nav .md-nav__list').forEach(function(list) {
+          var items = Array.from(list.children);
+          if (items.length < 2) return;
+          items.sort(function(a, b) {
+            var textA = (a.textContent || '').trim().toLowerCase();
+            var textB = (b.textContent || '').trim().toLowerCase();
+            return textA.localeCompare(textB);
+          });
+          items.forEach(function(item) { list.appendChild(item); });
+        });
+
+        // Pretty domain names
+        var prettyNames = {
+          'audio voice': 'Audio & Voice', 'bi analytics': 'BI & Analytics',
+          'cpp': 'C++', 'data engineering': 'Data Engineering',
+          'data science': 'Data Science', 'image generation': 'Image Generation',
+          'ios mobile': 'iOS & Mobile', 'java spring': 'Java & Spring',
+          'knowledge base': 'Knowledge Base', 'linux cli': 'Linux & CLI',
+          'llm agents': 'LLM Agents', 'llm memory': 'LLM Memory',
+          'nodejs': 'Node.js', 'php': 'PHP', 'seo marketing': 'SEO & Marketing',
+          'sql databases': 'SQL & Databases', 'testing qa': 'Testing & QA',
+          'web frontend': 'Web Frontend', 'devops': 'DevOps', 'misc': 'Misc'
+        };
+
+        // Extract button items (For AI Agents, How to Contribute, Privacy) into sticky header
+        var sidebar = document.querySelector('.md-sidebar--primary');
+        var scrollwrap = sidebar ? sidebar.querySelector('.md-sidebar__scrollwrap') : null;
+        if (sidebar && scrollwrap) {
+          var btnContainer = document.createElement('div');
+          btnContainer.className = 'ks-sidebar-buttons';
+          var btnItems = navList.querySelectorAll('.ks-btn-secondary');
+          btnItems.forEach(function(btn) {
+            var li = btn.closest('li, .md-nav__item');
+            if (li) {
+              var link = document.createElement('a');
+              var btnText = btn.textContent.trim();
+              link.textContent = btnText;
+              // btn may be <a> or <div> — find the actual href
+              var srcLink = btn.tagName === 'A' ? btn : (btn.querySelector('a') || li.querySelector('a'));
+              link.href = srcLink ? srcLink.href : ({ 'How to Contribute': '/contributing/' }[btnText] || '#');
+              link.className = 'ks-sidebar-btn';
+              btnContainer.appendChild(link);
+              li.style.display = 'none';
+            }
+          });
+          sidebar.insertBefore(btnContainer, scrollwrap);
+        }
+
+        // Make section toggles work: remove indeterminate and collapse all
+        navList.querySelectorAll('.md-nav__item--section').forEach(function(section) {
+          var toggle = section.querySelector(':scope > .md-toggle');
+          if (toggle) {
+            toggle.classList.remove('md-toggle--indeterminate');
+            toggle.indeterminate = false;
+            toggle.checked = false;
+          }
+
+          // Rename domain labels to pretty names
+          var nameSpan = section.querySelector(':scope > .md-nav__link .md-ellipsis');
+          if (nameSpan) {
+            var key = nameSpan.textContent.trim().toLowerCase();
+            if (prettyNames[key]) nameSpan.textContent = prettyNames[key];
+          }
+
+          // Replace default label/link with our own click handler
+          // This avoids Material JS intercepting label[for] clicks
+          var linkEl = section.querySelector(':scope > .md-nav__link.md-nav__container')
+                    || section.querySelector(':scope > label.md-nav__link');
+          if (linkEl && toggle) {
+            // Create a clean clickable overlay
+            var overlay = document.createElement('div');
+            overlay.className = 'ks-domain-toggle';
+            overlay.textContent = (nameSpan ? nameSpan.textContent : linkEl.textContent).trim();
+            overlay.addEventListener('click', function() {
+              toggle.checked = !toggle.checked;
+              overlay.classList.toggle('ks-expanded', toggle.checked);
+            });
+            // Hide original, insert overlay
+            linkEl.style.display = 'none';
+            section.insertBefore(overlay, linkEl);
+          }
+        });
+
+        // Auto-expand section containing current page
+        var activeLink = navList.querySelector('.md-nav__link--active');
+        if (activeLink) {
+          var activeSection = activeLink.closest('.md-nav__item--section');
+          if (activeSection) {
+            var activeToggle = activeSection.querySelector(':scope > .md-toggle');
+            var activeOverlay = activeSection.querySelector('.ks-domain-toggle');
+            if (activeToggle) activeToggle.checked = true;
+            if (activeOverlay) activeOverlay.classList.add('ks-expanded');
+          }
+        }
+      }, 50);
+    });
+  </script>
+
+  {# hreflang for multilingual llms.txt discovery #}
+  <link rel="alternate" hreflang="en" href="{{ config.site_url }}llms.txt" />
+  <link rel="alternate" hreflang="zh" href="{{ config.site_url }}llms-zh.txt" />
+  <link rel="alternate" hreflang="ko" href="{{ config.site_url }}llms-ko.txt" />
+  <link rel="alternate" hreflang="es" href="{{ config.site_url }}llms-es.txt" />
+  <link rel="alternate" hreflang="de" href="{{ config.site_url }}llms-de.txt" />
+  <link rel="alternate" hreflang="fr" href="{{ config.site_url }}llms-fr.txt" />
+  <link rel="alternate" hreflang="x-default" href="{{ config.site_url }}llms.txt" />
+
+  {% if page %}
+  {# Open Graph meta tags #}
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{ page.title }} - {{ config.site_name }}" />
+  <meta property="og:description" content="{{ (page.meta.description if page.meta and page.meta.description) | default(config.site_description) }}" />
+  <meta property="og:url" content="{{ page.canonical_url }}" />
+  <meta property="og:site_name" content="{{ config.site_name }}" />
+
+  {# Per-domain OG image: /assets/og-{domain}.png, fallback to og-image.png #}
+  {% set og_img = config.site_url ~ "assets/og-image.png" %}
+  {% if page.file and page.file.src_path %}
+    {% set parts = page.file.src_path.split("/") %}
+    {% if parts | length > 1 %}
+      {% set og_img = config.site_url ~ "assets/og-" ~ parts[0] ~ ".png" %}
+    {% endif %}
+  {% endif %}
+  <meta property="og:image" content="{{ og_img }}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  {# Twitter Card #}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{ page.title }} - {{ config.site_name }}" />
+  <meta name="twitter:description" content="{{ (page.meta.description if page.meta and page.meta.description) | default(config.site_description) }}" />
+  <meta name="twitter:image" content="{{ og_img }}" />
+  {% endif %}
+
+  {# BreadcrumbList JSON-LD - helps Google show path in SERP #}
+  {% if page and not page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "{{ config.site_name }}",
+        "item": "{{ config.site_url }}"
+      }{% if page.parent %},
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{ page.parent.title }}",
+        "item": "{{ config.site_url }}{{ page.parent.url }}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "{{ page.title }}"
+      }{% else %},
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{ page.title }}"
+      }{% endif %}
+    ]
+  }
+  </script>
+  {% endif %}
+
+  {# WebSite JSON-LD with availableLanguage - on homepage only #}
+  {% if page and page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{ config.site_name }}",
+    "url": "{{ config.site_url }}",
+    "description": {{ config.site_description | tojson }},
+    "inLanguage": "en",
+    "availableLanguage": [
+      {"@type": "Language", "name": "English", "alternateName": "en"},
+      {"@type": "Language", "name": "Chinese", "alternateName": "zh"},
+      {"@type": "Language", "name": "Korean", "alternateName": "ko"},
+      {"@type": "Language", "name": "Spanish", "alternateName": "es"},
+      {"@type": "Language", "name": "German", "alternateName": "de"},
+      {"@type": "Language", "name": "French", "alternateName": "fr"}
+    ],
+    "author": [
+      {
+        "@type": "Person",
+        "name": "AnastasiyaW",
+        "url": "https://github.com/AnastasiyaW"
+      },
+      {
+        "@type": "Person",
+        "name": "Anastasiya Ilukhina",
+        "url": "https://www.linkedin.com/in/anastasiya-ilukhina-09646a289/"
+      }
+    ]
+  }
+  </script>
+  {% endif %}
+
+  {# TechArticle JSON-LD - only emitted when description exists (prevent partial schema penalty) #}
+  {% if page and page.meta and page.meta.description %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": {{ page.title | tojson }},
+    "description": {{ page.meta.description | tojson }},
+    "url": "{{ page.canonical_url }}",
+    {% if page.meta.date %}"datePublished": "{{ page.meta.date }}",{% endif %}
+    {% if page.meta.updated %}"dateModified": "{{ page.meta.updated }}",{% endif %}
+    "author": [
+      {
+        "@type": "Person",
+        "name": "AnastasiyaW",
+        "url": "https://github.com/AnastasiyaW"
+      },
+      {
+        "@type": "Person",
+        "name": "Anastasiya Ilukhina",
+        "url": "https://www.linkedin.com/in/anastasiya-ilukhina-09646a289/"
+      }
+    ],
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{ config.site_name }}",
+      "url": "{{ config.site_url }}"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "{{ page.canonical_url }}"
+    },
+    "proficiencyLevel": "{{ page.meta.level | default('Intermediate') }}",
+    "inLanguage": "en"
+  }
+  </script>
+  {% endif %}
+  {# FAQPage JSON-LD from Gotchas section - injected by hooks/faq_schema.py #}
+  {% if page and page.meta and page.meta._faq_schema %}
+  <script type="application/ld+json">
+  {{ page.meta._faq_schema }}
+  </script>
+  {% endif %}
+{% endblock %}
+
+{% block footer %}
+  {{ super() }}
+  <div class="ks-footer-privacy">
+    No cookies. No third-party tracking. Privacy-friendly analytics by Cloudflare.
+  </div>
+
+  {# Newsletter popup - article pages only, new visitors, 14-day cooldown #}
+  {% if page and not page.is_homepage %}
+  <div class="ks-popup-overlay" id="ks-popup-overlay" style="display:none">
+    <div class="ks-popup">
+      <button class="ks-popup__close" id="ks-popup-close" aria-label="Close">&times;</button>
+      <div class="ks-popup__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <h3 class="ks-popup__title">Stay updated</h3>
+      <p class="ks-popup__text">New articles on AI, infrastructure, and engineering. No spam - just knowledge drops.</p>
+      <form class="ks-popup__form" id="ks-popup-form">
+        <input type="email" class="ks-popup__email" id="ks-popup-email" placeholder="your@email.com" required autocomplete="email">
+        <button type="submit" class="ks-popup__btn" id="ks-popup-btn">Subscribe</button>
+      </form>
+      <div class="ks-popup__msg" id="ks-popup-msg"></div>
+      <button class="ks-popup__skip" id="ks-popup-skip">No thanks</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var KEY='ks_popup_seen', COOLDOWN=14*86400*1000;
+    var last=localStorage.getItem(KEY);
+    if(last && Date.now()-parseInt(last,10)<COOLDOWN) return;
+
+    var overlay=document.getElementById('ks-popup-overlay');
+    if(!overlay) return;
+
+    var shown=false;
+    function show(){
+      if(shown) return; shown=true;
+      overlay.style.display='flex';
+      overlay.offsetHeight; // force reflow
+      overlay.classList.add('ks-popup--visible');
+    }
+
+    // Show after 45s or 60% scroll
+    var timer=setTimeout(show, 45000);
+    window.addEventListener('scroll',function(){
+      var pct=window.scrollY/(document.body.scrollHeight-window.innerHeight);
+      if(pct>0.6) show();
+    });
+
+    function dismiss(){
+      localStorage.setItem(KEY, String(Date.now()));
+      clearTimeout(timer);
+      overlay.classList.remove('ks-popup--visible');
+      setTimeout(function(){ overlay.style.display='none'; },300);
+    }
+
+    document.getElementById('ks-popup-close').onclick=dismiss;
+    document.getElementById('ks-popup-skip').onclick=dismiss;
+    overlay.addEventListener('click',function(e){
+      if(e.target===overlay) dismiss();
+    });
+
+    document.getElementById('ks-popup-form').addEventListener('submit',function(e){
+      e.preventDefault();
+      var btn=document.getElementById('ks-popup-btn');
+      var msg=document.getElementById('ks-popup-msg');
+      var email=document.getElementById('ks-popup-email').value.trim();
+      btn.disabled=true; btn.textContent='...';
+      fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(d.ok){
+            msg.textContent='Subscribed! Welcome aboard.';
+            msg.className='ks-popup__msg ks-popup__msg--ok';
+            setTimeout(dismiss, 2000);
+          } else {
+            msg.textContent=d.error||'Something went wrong';
+            msg.className='ks-popup__msg ks-popup__msg--err';
+            btn.disabled=false; btn.textContent='Subscribe';
+          }
+        })
+        .catch(function(){
+          msg.textContent='Network error - try again';
+          msg.className='ks-popup__msg ks-popup__msg--err';
+          btn.disabled=false; btn.textContent='Subscribe';
+        });
+    });
+  })();
+  </script>
+  {% endif %}
+{% endblock %}

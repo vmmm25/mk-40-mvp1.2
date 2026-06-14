@@ -630,5 +630,52 @@ TOOL_DECLARATIONS = [
             "required": ["action"]
         }
     },
+    {
+        "name": "search_knowledge",
+        "description": "Searches the knowledge-space collection for technical articles, concepts, and reference material across 26 domains (programming, AI, math, science, history, etc.). Use this when the user asks about technical concepts, how things work, or wants reference information.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "query": {"type": "STRING", "description": "The search query for technical knowledge"},
+                "n_results": {"type": "INTEGER", "description": "Number of results to return (default: 5)"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "install_knowledge_repo",
+        "description": "Downloads a GitHub repository and indexes all its markdown files into the knowledge-space RAG collection for semantic search. Use this to install new knowledge bases.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "github_repo": {"type": "STRING", "description": "GitHub repository in 'owner/repo' format (e.g. 'AnastasiyaW/knowledge-space')"},
+                "subdir": {"type": "STRING", "description": "Optional subdirectory within the repo to index (e.g. 'articles')"}
+            },
+            "required": ["github_repo"]
+        }
+    },
+    {
+        "name": "search_skill_md",
+        "description": "Searches the SKILL.md skill library for agentic capabilities, domain expertise, and reusable skill patterns. Use this when the user asks about specific skills, capabilities, or when you need specialized knowledge from the skill ecosystem.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "query": {"type": "STRING", "description": "The search query for skills (e.g. 'python testing', 'react patterns', 'security')"},
+                "n_results": {"type": "INTEGER", "description": "Number of results to return (default: 5)"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "install_skill_md_repo",
+        "description": "Downloads a SKILL.md-style GitHub repository and indexes all its skills into the skill library for semantic search. Supports the garri333/Skills ecosystem.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "github_repo": {"type": "STRING", "description": "GitHub repository in 'owner/repo' format (e.g. 'garri333/Skills', 'javiertarazon/agente-copilot')"}
+            },
+            "required": ["github_repo"]
+        }
+    },
 ]
 

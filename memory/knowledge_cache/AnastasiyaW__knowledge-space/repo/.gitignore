@@ -1,0 +1,40 @@
+site/
+.cache/
+__pycache__/
+*.pyc
+.env
+
+# Internal documentation (SEO strategy, internal plans, etc.)
+.internal/
+
+# Auto-generated stats (rebuilt by hooks/stats.py at build time)
+docs/javascripts/stats.js
+
+# Pipeline artifacts (Stage 3 generation metadata)
+docs/**/.concepts.json
+
+# Wrangler cache (Cloudflare Pages deploy tool)
+.wrangler/
+
+# Claude internal state (local paths, session data, internal docs)
+.claude/projects/
+.claude/HANDOFF.md
+.claude/handoff-history/
+.claude/TODO.md
+.claude/rules/research-intake.md
+.claude/launch.json
+
+# Old root-level article dirs (migrated to docs/)
+/architecture/
+/python/
+/seo-marketing/
+/sql-databases/
+/web-frontend/
+
+# Handoffs contain personal paths and session state - never commit
+.claude/handoffs/
+.claude/chronicles/
+.claude/.session-start
+.claude/.handoff-reminded
+.claude/settings.json
+.claude/WORKFLOW.md

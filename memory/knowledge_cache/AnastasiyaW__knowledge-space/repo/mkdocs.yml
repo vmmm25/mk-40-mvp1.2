@@ -1,0 +1,123 @@
+site_name: Happyin Knowledge Space
+site_description: >-
+  Comprehensive technical knowledge base with 834+ curated articles
+  covering Kafka, Python, SQL, DevOps, Security, and 21 more domains.
+  Built for software engineers and LLM agents.
+site_url: https://happyin.space/
+site_author: AnastasiyaW
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.path
+    - navigation.indexes
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  logo: assets/favicon.svg
+  favicon: assets/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+
+repo_url: https://github.com/AnastasiyaW/knowledge-space
+repo_name: knowledge-space
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/AnastasiyaW/knowledge-space
+      name: Knowledge Space
+    - icon: fontawesome/brands/github
+      link: https://github.com/AnastasiyaW/claude-code-config
+      name: Claude Code Config
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/happyinhappy/
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/anastasiya-ilukhina-09646a289/
+    - icon: fontawesome/brands/telegram
+      link: https://t.me/happyin_space
+      name: Telegram
+
+extra_css:
+  - stylesheets/graph.css
+
+extra_javascript:
+  - javascripts/stats.js
+  - https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js
+  - javascripts/graph.js
+
+hooks:
+  - hooks/stats.py
+  - hooks/validate.py
+  - hooks/link_checker.py
+  - hooks/description.py
+  - hooks/wikilinks.py
+  - hooks/copy_extras.py
+  - hooks/public_check.py
+  - hooks/levels.py
+  - hooks/faq_schema.py
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - blog:
+      blog_dir: blog
+      post_date_format: long
+      archive: false
+      categories: false
+  # - privacy:
+  #     assets: true
+  - meta
+  - minify:
+      minify_html: true
+  - redirects:
+      redirect_maps: {}
+
+# nav: auto-generated from docs/ structure (834 articles across 26 domains)

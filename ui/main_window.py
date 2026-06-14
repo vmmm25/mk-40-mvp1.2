@@ -20,18 +20,20 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QBrush, QColor, QDragEnterEvent, QDropEvent, QFont, QFontDatabase,
     QKeySequence, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap,
-    QRadialGradient, QShortcut, QAction,
+    QRadialGradient, QShortcut,
 )
 from PyQt6.QtWidgets import (
-    QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
+    QApplication, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QProgressBar, QPushButton, QSizePolicy, QTextEdit, QVBoxLayout, QWidget,
-    QTabWidget, QSlider, QMenu,
+    QTabWidget, QSlider,
 )
 
 from memory.config_manager import load_config, save_config, get_model, set_model, is_configured, get_lmstudio_url
 from ui.theme import Theme as C, qcol, PROVIDER_COLORS, get_openrouter_color as _get_openrouter_color
 from ui.wave_canvas import WaveCanvas
-from ui.config_toolbar import ConfigToolbar, _OR_FREE_MODELS, _populate_or_combo, _COMBO_STYLE
+from ui.config_toolbar import _OR_FREE_MODELS, _populate_or_combo, _COMBO_STYLE
+from ui.components.settings_panel import SettingsPanel
+from ui.components.chat_bar import ChatBarWidget
 from providers.lmstudio_control import (
     find_lmstudio_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
@@ -59,7 +61,7 @@ _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 # ── Extracted components (now in separate modules) ──
 from ui.metrics import SysMetrics as _SysMetrics, ProviderStatusWorker, MetricBar
 from ui.log_panel import LogWidget
-from ui.file_drop import FileDropZone, file_category as _file_category, fmt_size as _fmt_size
+from ui.file_drop import FileDropZone, _FILE_ICONS, file_category as _file_category, fmt_size as _fmt_size
 from ui.dialogs.settings import SetupOverlay
 
 
@@ -116,6 +118,11 @@ class MainWindow(QMainWindow):
         self._main_content = self._build_main_content(face_path)
         body.addWidget(self._main_content, stretch=1)
 
+        self._settings_panel = SettingsPanel(self)
+        # initially visible or hidden based on your preference
+        self._settings_panel.setVisible(True)
+        body.addWidget(self._settings_panel, stretch=0)
+
         self._update_llm_ui()
 
         root.addLayout(body, stretch=1)
@@ -146,6 +153,8 @@ class MainWindow(QMainWindow):
         self._status_worker.status_ready.connect(self._update_provider_status)
         self._status_worker.start()
 
+        self._apply_theme_colors()
+
         sc_mute = QShortcut(QKeySequence("F4"), self)
         sc_mute.activated.connect(self._toggle_mute)
         sc_full = QShortcut(QKeySequence("F11"), self)
@@ -166,11 +175,17 @@ class MainWindow(QMainWindow):
             self._set_audio_engine("local", trigger_callback=False)
         else:
             self._set_audio_engine("gemini", trigger_callback=False)
+            
+        C.set_provider_theme(provider)
+        self._apply_theme_colors()
         self._update_llm_ui()
         prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(provider, provider)
-        self._provider_lbl.setText(f"◈  {prov_name}")
-        # Update model combo for the new provider
-        self._refresh_right_model_combo(provider)
+        if hasattr(self, '_chat_bar'):
+            idx = self._chat_bar.provider_combo.findText(provider, Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchFixedString)
+            if idx >= 0 and self._chat_bar.provider_combo.currentIndex() != idx:
+                self._chat_bar.provider_combo.setCurrentIndex(idx)
+        if hasattr(self, '_settings_panel'):
+            self._settings_panel.update_status(provider)
         # Update config toolbar
         if hasattr(self, '_config_bar'):
             self._config_bar.update_status(provider)
@@ -195,75 +210,81 @@ class MainWindow(QMainWindow):
         selected_provider = cfg.get("selected_provider", "gemini")
         
         if self._llm_active:
-            self._llm_toggle_btn.setText("● LLM ONLINE")
-            self._llm_toggle_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: #001a0d; color: {C.GREEN};
-                    border: 1px solid {C.GREEN}; border-radius: 3px; padding: 0px 8px;
-                }}
-                QPushButton:hover {{ background: {C.GREEN}; color: #000; }}
-            """)
+            if hasattr(self, "_llm_toggle_btn"):
+                self._llm_toggle_btn.setText("● LLM ONLINE")
+                self._llm_toggle_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: #001a0d; color: {C.GREEN};
+                        border: 1px solid {C.GREEN}; border-radius: 10px; padding: 0px 8px;
+                    }}
+                    QPushButton:hover {{ background: {C.GREEN}; color: #000; }}
+                """)
             if hasattr(self, "_ai_core_lbl"):
                 self._ai_core_lbl.setText("AI CORE\nACTIVE")
                 self._ai_core_lbl.setStyleSheet(
                     f"color: {C.GREEN}; background: {C.PANEL2};"
-                    f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
+                    f"border: 1px solid {C.BORDER_A}; border-radius: 10px; padding: 4px;"
                 )
             
-            # Enable buttons and restore highlight
-            for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
-                btn.setEnabled(True)
-                btn.setToolTip("Seleccionar proveedor")
+            if hasattr(self, "_chat_bar"):
+                self._chat_bar.provider_combo.setEnabled(True)
+                self._chat_bar.provider_combo.setToolTip("Seleccionar proveedor")
             self._highlight_provider(selected_provider)
         else:
-            self._llm_toggle_btn.setText("○ LLM OFFLINE")
-            self._llm_toggle_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: #1a0005; color: {C.RED};
-                    border: 1px solid {C.RED}; border-radius: 3px; padding: 0px 8px;
-                }}
-                QPushButton:hover {{ background: {C.RED}; color: #fff; }}
-            """)
+            if hasattr(self, "_llm_toggle_btn"):
+                self._llm_toggle_btn.setText("○ LLM OFFLINE")
+                self._llm_toggle_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background: #1a0005; color: {C.RED};
+                        border: 1px solid {C.RED}; border-radius: 10px; padding: 0px 8px;
+                    }}
+                    QPushButton:hover {{ background: {C.RED}; color: #fff; }}
+                """)
             if hasattr(self, "_ai_core_lbl"):
                 self._ai_core_lbl.setText("AI CORE\nINACTIVE")
                 self._ai_core_lbl.setStyleSheet(
                     f"color: {C.RED}; background: {C.PANEL2};"
-                    f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
+                    f"border: 1px solid {C.BORDER_A}; border-radius: 10px; padding: 4px;"
                 )
             
-            # Highlight gemini (which is active)
             self._highlight_provider("gemini")
             
-            # Disable LLM buttons and apply gray out style
-            for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
-                btn.setEnabled(False)
-                btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background: #050b0d; color: {C.TEXT_DIM};
-                        border: 1px solid {C.BORDER_A}; border-radius: 3px;
-                    }}
-                """)
-                btn.setToolTip("Activa LLM ONLINE para usar otros proveedores")
+            if hasattr(self, "_chat_bar"):
+                self._chat_bar.provider_combo.setEnabled(False)
+                self._chat_bar.provider_combo.setToolTip("Activa LLM ONLINE para usar otros proveedores")
 
+
+    def _apply_theme_colors(self):
+        """Reapply dynamic theme colors to the main UI components."""
+        if hasattr(self, '_title_lbl'):
+            self._title_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent;")
+        if hasattr(self, '_sub_lbl'):
+            self._sub_lbl.setStyleSheet(f"color: {C.PRI_DIM}; background: transparent;")
+        if hasattr(self, '_clock_lbl'):
+            self._clock_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent;")
+        if hasattr(self, '_left_hdr_lbl'):
+            self._left_hdr_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent; border-bottom: 1px solid {C.BORDER}; padding-bottom: 4px;")
+        if hasattr(self, '_sec_badges') and len(self._sec_badges) > 1:
+            self._sec_badges[0].setStyleSheet(f"color: {C.PRI}; background: {C.PANEL2}; border: 1px solid {C.BORDER_A}; border-radius: 10px; padding: 4px;")
+            self._sec_badges[1].setStyleSheet(f"color: {C.TEXT_DIM}; background: {C.PANEL2}; border: 1px solid {C.BORDER_A}; border-radius: 10px; padding: 4px;")
+        if hasattr(self, '_vol_label'):
+            self._vol_label.setStyleSheet(f"color: {C.PRI}; background: transparent;")
+        if hasattr(self, '_volume_slider'):
+            self._volume_slider.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    background: {C.BORDER}; height: 4px; border-radius: 6px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: {C.PRI}; width: 14px; height: 14px;
+                    margin: -5px 0; border-radius: 7px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: {C.PRI_DIM}; border-radius: 6px;
+                }}
+            """)
     def _highlight_provider(self, provider: str):
-        """Highlight the active provider button."""
-        colors = {"gemini": C.PRI, "ollama": C.ACC2, "openrouter": C.GREEN, "lmstudio": C.ACC}
-        bg_map = {"gemini": "#001a22", "ollama": "#1a1400", "openrouter": "#001a0d", "lmstudio": "#1a0e00"}
-        btns = {"gemini": self._gemini_btn, "ollama": self._ollama_btn, "openrouter": self._or_btn, "lmstudio": self._lm_btn}
-        for k, btn in btns.items():
-            if k == provider:
-                fg = colors[k]
-                bg = bg_map[k]
-                btn.setStyleSheet(f"""
-                    QPushButton {{ background: {fg}; color: {bg};
-                        border: none; border-radius: 3px; font-weight: bold; }}
-                """)
-            else:
-                btn.setStyleSheet(f"""
-                    QPushButton {{ background: #000d12; color: {C.TEXT_DIM};
-                        border: 1px solid {C.BORDER}; border-radius: 3px; }}
-                    QPushButton:hover {{ color: {C.TEXT}; border: 1px solid {C.BORDER_B}; }}
-                """)
+        # Already handled nicely by combo box styling in ChatBarWidget
+        pass
 
     def _toggle_fullscreen(self):
         if self.isFullScreen():
@@ -349,23 +370,20 @@ class MainWindow(QMainWindow):
         lay.addStretch()
 
         mid = QVBoxLayout(); mid.setSpacing(1)
-        title = QLabel("J.A.R.V.I.S")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        title.setStyleSheet(f"color: {C.PRI}; background: transparent;")
-        mid.addWidget(title)
-        sub = QLabel("Just A Rather Very Intelligent System")
-        sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sub.setFont(QFont("Segoe UI", 11))
-        sub.setStyleSheet(f"color: {C.PRI_DIM}; background: transparent;")
-        mid.addWidget(sub)
+        self._title_lbl = QLabel("J.A.R.V.I.S")
+        self._title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._title_lbl.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        mid.addWidget(self._title_lbl)
+        self._sub_lbl = QLabel("Just A Rather Very Intelligent System")
+        self._sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._sub_lbl.setFont(QFont("Segoe UI", 11))
+        mid.addWidget(self._sub_lbl)
         lay.addLayout(mid)
         lay.addStretch()
 
         right_col = QVBoxLayout(); right_col.setSpacing(2)
         self._clock_lbl = QLabel("00:00:00")
         self._clock_lbl.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self._clock_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent;")
         self._clock_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
         right_col.addWidget(self._clock_lbl)
         self._date_lbl = QLabel("")
@@ -388,11 +406,9 @@ class MainWindow(QMainWindow):
         lay.setContentsMargins(8, 10, 8, 10)
         lay.setSpacing(6)
 
-        hdr = QLabel("◈ SYS MONITOR")
-        hdr.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        hdr.setStyleSheet(f"color: {C.PRI}; background: transparent; "
-                          f"border-bottom: 1px solid {C.BORDER}; padding-bottom: 4px;")
-        lay.addWidget(hdr)
+        self._left_hdr_lbl = QLabel("◈ SYS MONITOR")
+        self._left_hdr_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        lay.addWidget(self._left_hdr_lbl)
         lay.addSpacing(2)
 
         self._bar_cpu = MetricBar("CPU", C.PRI)
@@ -409,7 +425,7 @@ class MainWindow(QMainWindow):
 
         info_panel = QWidget()
         info_panel.setStyleSheet(
-            f"background: {C.PANEL2}; border: 1px solid {C.BORDER}; border-radius: 4px;"
+            f"background: {C.PANEL2}; border: 1px solid {C.BORDER}; border-radius: 10px;"
         )
         ip_lay = QVBoxLayout(info_panel)
         ip_lay.setContentsMargins(6, 5, 6, 5)
@@ -437,54 +453,20 @@ class MainWindow(QMainWindow):
         self._ai_core_lbl = QLabel("AI CORE\nACTIVE")
         self._ai_core_lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self._ai_core_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._ai_core_lbl.setStyleSheet(
-            f"color: {C.GREEN}; background: {C.PANEL2};"
-            f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
-        )
         lay.addWidget(self._ai_core_lbl)
 
-        for txt, col in [
-            ("SEC\nCLEARED",        C.PRI),
-            ("PROTOCOL\nXXXVIII",   C.TEXT_DIM),
-        ]:
+        self._sec_badges = []
+        for txt in ["SEC\nCLEARED", "PROTOCOL\nXXXVIII"]:
             lbl = QLabel(txt)
             lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setStyleSheet(
-                f"color: {col}; background: {C.PANEL2};"
-                f"border: 1px solid {C.BORDER_A}; border-radius: 3px; padding: 4px;"
-            )
+            self._sec_badges.append(lbl)
             lay.addWidget(lbl)
 
         return w
 
     def _build_main_content(self, face_path: str) -> QWidget:
-        # Create the main TabWidget that lives at the top
-        tabs = QTabWidget()
-        tabs.setStyleSheet(f"""
-            QTabWidget::pane {{
-                border: 1px solid {C.BORDER};
-                background: {C.BG};
-            }}
-            QTabBar::tab {{
-                background: {C.DARK};
-                color: {C.TEXT_DIM};
-                border: 1px solid {C.BORDER};
-                border-bottom: none;
-                padding: 10px 24px;
-                font: bold 10pt 'Segoe UI';
-            }}
-            QTabBar::tab:selected {{
-                background: {C.PANEL2};
-                color: {C.PRI};
-                border-color: {C.BORDER_B};
-            }}
-            QTabBar::tab:hover {{
-                color: {C.TEXT_MED};
-            }}
-        """)
-
-        # ── TAB 1: INTERACCIÓN Y CONSOLA ──
+        # ── INTERACCIÓN Y CONSOLA ──
         console_widget = QWidget()
         console_widget.setStyleSheet("background: transparent;")
         console_lay = QHBoxLayout(console_widget)
@@ -533,7 +515,7 @@ class MainWindow(QMainWindow):
         fs_btn.setStyleSheet(f"""
             QPushButton {{
                 background: transparent; color: {C.TEXT_MED};
-                border: 1px solid {C.BORDER}; border-radius: 3px;
+                border: 1px solid {C.BORDER}; border-radius: 10px;
             }}
             QPushButton:hover {{
                 color: {C.PRI}; border: 1px solid {C.BORDER_B};
@@ -554,14 +536,14 @@ class MainWindow(QMainWindow):
         self._volume_slider.setValue(saved_vol)
         self._volume_slider.setStyleSheet(f"""
             QSlider::groove:horizontal {{
-                background: {C.BORDER}; height: 4px; border-radius: 2px;
+                background: {C.BORDER}; height: 4px; border-radius: 6px;
             }}
             QSlider::handle:horizontal {{
                 background: {C.PRI}; width: 14px; height: 14px;
                 margin: -5px 0; border-radius: 7px;
             }}
             QSlider::sub-page:horizontal {{
-                background: {C.PRI_DIM}; border-radius: 2px;
+                background: {C.PRI_DIM}; border-radius: 6px;
             }}
         """)
         self._volume_slider.valueChanged.connect(self._on_volume_changed)
@@ -572,6 +554,25 @@ class MainWindow(QMainWindow):
         self._vol_label.setFixedWidth(40)
         vol_row.addWidget(self._vol_label)
         hud_col.addLayout(vol_row)
+
+        hud_col.addSpacing(6)
+        hud_col.addWidget(_sec("MOTOR DE AUDIO"))
+        audio_btns = QHBoxLayout(); audio_btns.setSpacing(4)
+        self._audio_gemini_btn = QPushButton("AUDIO\nGEMINI")
+        self._audio_gemini_btn.setFixedHeight(50)
+        self._audio_gemini_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._audio_gemini_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._audio_gemini_btn.clicked.connect(lambda: self._set_audio_engine("gemini"))
+        audio_btns.addWidget(self._audio_gemini_btn)
+        
+        self._audio_local_btn = QPushButton("WHISPER /\nPIPER")
+        self._audio_local_btn.setFixedHeight(50)
+        self._audio_local_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self._audio_local_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._audio_local_btn.clicked.connect(lambda: self._set_audio_engine("local"))
+        audio_btns.addWidget(self._audio_local_btn)
+        
+        hud_col.addLayout(audio_btns)
 
         hud_col.addStretch()
         console_lay.addLayout(hud_col, stretch=4)
@@ -588,239 +589,53 @@ class MainWindow(QMainWindow):
         sep_chat1.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
         chat_col.addWidget(sep_chat1)
 
-        # --- NEW ACTIONS ROW ---
-        actions_row = QHBoxLayout(); actions_row.setSpacing(12)
+        self._chat_bar = ChatBarWidget(self)
+        self._chat_bar.send_requested.connect(self._send_text)
+        self._chat_bar.file_selected.connect(self._on_file_selected)
+        self._chat_bar.folder_selected.connect(self._on_folder_selected)
+        self._chat_bar.tool_command_requested.connect(self._insert_tool_cmd)
+        self._chat_bar.provider_changed.connect(self._switch_provider)
+        self._chat_bar.permissions_requested.connect(self._show_permissions)
         
-        # 1. File Drop Zone (Square)
-        self._drop_zone = FileDropZone()
-        self._drop_zone.file_selected.connect(self._on_file_selected)
-        self._drop_zone.setFixedSize(120, 120)
-        actions_row.addWidget(self._drop_zone)
+        # Link aliases
+        self._llm_toggle_btn = self._chat_bar.llm_toggle_btn
+        self._llm_toggle_btn.clicked.connect(self._toggle_llm_state)
         
-        # 2. File Info
-        fd_info = QVBoxLayout()
-        fd_info.addWidget(_sec("CARGAR ARCHIVOS"))
-        self._file_hint = QLabel("No hay archivo cargado — arrastra o haz clic para subir")
-        self._file_hint.setFont(QFont("Segoe UI", 9))
-        self._file_hint.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
-        self._file_hint.setWordWrap(True)
-        fd_info.addWidget(self._file_hint)
-        fd_info.addStretch()
-        actions_row.addLayout(fd_info, stretch=2)
+        self._right_model_combo = self._chat_bar.model_combo
+        self._right_model_combo.currentIndexChanged.connect(self._on_right_model_changed)
         
-        # 3. Audio Toggles
-        audio_col = QVBoxLayout(); audio_col.setSpacing(4)
-        audio_col.addWidget(_sec("MOTOR DE AUDIO"))
-        
-        audio_btns = QHBoxLayout(); audio_btns.setSpacing(4)
-        self._audio_gemini_btn = QPushButton("AUDIO\nGEMINI")
-        self._audio_gemini_btn.setFixedHeight(50)
-        self._audio_gemini_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self._audio_gemini_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._audio_gemini_btn.clicked.connect(lambda: self._set_audio_engine("gemini"))
-        audio_btns.addWidget(self._audio_gemini_btn)
-        
-        self._audio_local_btn = QPushButton("WHISPER /\nPIPER")
-        self._audio_local_btn.setFixedHeight(50)
-        self._audio_local_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self._audio_local_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._audio_local_btn.clicked.connect(lambda: self._set_audio_engine("local"))
-        audio_btns.addWidget(self._audio_local_btn)
-        
-        audio_col.addLayout(audio_btns)
-        audio_col.addStretch()
-        actions_row.addLayout(audio_col, stretch=2)
-        
-        chat_col.addLayout(actions_row)
+        chat_col.addWidget(self._chat_bar)
         
         self._update_audio_toggles()
-
-        sep_chat2 = QFrame(); sep_chat2.setFrameShape(QFrame.Shape.HLine)
-        sep_chat2.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
-        chat_col.addWidget(sep_chat2)
-
-        # Provider and Model selector
-        chat_col.addWidget(_sec("SELECCIONAR PROVEEDOR DE IA"))
-        prov_row = QHBoxLayout(); prov_row.setSpacing(4)
-
-        def _prov_btn(label, provider):
-            btn = QPushButton(label)
-            btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-            btn.setFixedHeight(28)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.clicked.connect(lambda: self._switch_provider(provider))
-            return btn
-
-        self._ollama_btn = _prov_btn("OLLAMA (OLL)", "ollama")
-        self._or_btn = _prov_btn("OPENROUTER (OR)", "openrouter")
-        self._lm_btn = _prov_btn("LM STUDIO (LM)", "lmstudio")
-        self._gemini_btn = QPushButton(); self._gemini_btn.hide() # Dummy for _highlight_provider
-
-        for btn in [self._ollama_btn, self._or_btn, self._lm_btn]:
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: #000d12; color: {C.TEXT_DIM};
-                    border: 1px solid {C.BORDER}; border-radius: 3px;
-                }}
-                QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
-            """)
-            prov_row.addWidget(btn)
-
-        prov_row.addSpacing(12)
-
-        self._llm_toggle_btn = QPushButton()
-        self._llm_toggle_btn.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self._llm_toggle_btn.setFixedHeight(28)
-        self._llm_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._llm_toggle_btn.clicked.connect(self._toggle_llm_state)
-        prov_row.addWidget(self._llm_toggle_btn)
-
-        chat_col.addLayout(prov_row)
-
-        model_row = QHBoxLayout(); model_row.setSpacing(8)
-        self._provider_lbl = QLabel("◈  OLLAMA")
-        self._provider_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        self._provider_lbl.setStyleSheet(f"color: {C.PRI}; background: transparent;")
-        model_row.addWidget(self._provider_lbl)
-
-        self._right_model_combo = QComboBox()
-        self._right_model_combo.setFont(QFont("Segoe UI", 10))
-        self._right_model_combo.setFixedHeight(28)
-        self._right_model_combo.setStyleSheet(_COMBO_STYLE)
-        self._right_model_combo.currentIndexChanged.connect(self._on_right_model_changed)
-        model_row.addWidget(self._right_model_combo, stretch=1)
         
-        self._model_action_btn = QPushButton("📁")
-        self._model_action_btn.setFont(QFont("Segoe UI", 10))
-        self._model_action_btn.setFixedSize(28, 28)
-        self._model_action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._model_action_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #000d12; color: {C.PRI};
-                border: 1px solid {C.BORDER}; border-radius: 3px;
-            }}
-            QPushButton:hover {{ background: {C.PRI}; color: #000; }}
-        """)
-        self._model_action_btn.clicked.connect(self._on_model_action_clicked)
-        model_row.addWidget(self._model_action_btn)
-        chat_col.addLayout(model_row)
-
         saved_prov = cfg.get("selected_provider", "ollama")
-        if saved_prov == "gemini": saved_prov = "ollama" # Since Gemini is removed
-        self._refresh_right_model_combo(saved_prov)
-        self._highlight_provider(saved_prov)
-
-        sep_chat3 = QFrame(); sep_chat3.setFrameShape(QFrame.Shape.HLine)
-        sep_chat3.setStyleSheet(f"color: {C.BORDER}; margin: 2px 0;")
-        chat_col.addWidget(sep_chat3)
-
-        chat_col.addWidget(_sec("ENTRADA DE COMANDOS / TEXTO"))
-        chat_col.addLayout(self._build_input_row())
+        if saved_prov == "gemini": saved_prov = "ollama"
+        idx = self._chat_bar.provider_combo.findText(saved_prov, Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchFixedString)
+        if idx >= 0:
+            self._chat_bar.provider_combo.setCurrentIndex(idx)
+        else:
+            # No combo signal fired — run refresh manually
+            self._refresh_right_model_combo(saved_prov)
 
         console_lay.addLayout(chat_col, stretch=6)
 
-        tabs.addTab(console_widget, "💬  CONSOLA INTERACTIVA")
-
-        # ── TAB 2: AJUSTES ──
-        from ui.config_toolbar import ConfigToolbar
-        self._config_bar = ConfigToolbar(main_window=self)
-        tabs.addTab(self._config_bar, "⚙  AJUSTES DE MOTOR Y VOZ")
-        return tabs
+        return console_widget
 
     def _on_volume_changed(self, val: int):
         self._vol_label.setText(f"{val}%")
         try:
             save_config({"audio_volume": val})
-            if hasattr(self, "_config_bar") and hasattr(self._config_bar, "_volume_slider"):
-                self._config_bar._volume_slider.blockSignals(True)
-                self._config_bar._volume_slider.setValue(val)
-                self._config_bar._vol_label.setText(f"{val}%")
-                self._config_bar._volume_slider.blockSignals(False)
+            if hasattr(self, "_settings_panel") and hasattr(self._settings_panel, "_volume_slider"):
+                self._settings_panel._volume_slider.blockSignals(True)
+                self._settings_panel._volume_slider.setValue(val)
+                self._settings_panel._vol_label.setText(f"{val}%")
+                self._settings_panel._volume_slider.blockSignals(False)
         except Exception:
             pass
 
-    def _build_input_row(self) -> QHBoxLayout:
-        row = QHBoxLayout(); row.setSpacing(5)
-
-        # The "+" Tools button
-        self._tools_btn = QPushButton("+")
-        self._tools_btn.setFixedSize(34, 34)
-        self._tools_btn.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self._tools_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._tools_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {C.PANEL}; color: {C.GREEN};
-                border: 1px solid {C.GREEN}; border-radius: 3px;
-            }}
-            QPushButton:hover {{ background: {C.GREEN}22; border: 1px solid #00ffaa; }}
-            QPushButton::menu-indicator {{ image: none; }}
-        """)
-        # Tools menu
-        self._tools_menu = QMenu(self)
-        self._tools_menu.setStyleSheet(f"""
-            QMenu {{
-                background-color: {C.DARK};
-                color: {C.TEXT};
-                border: 1px solid {C.BORDER_B};
-                padding: 4px;
-            }}
-            QMenu::item {{
-                padding: 6px 24px 6px 12px;
-                background: transparent;
-                font: bold 10pt "Segoe UI";
-            }}
-            QMenu::item:selected {{
-                background-color: {C.PRI_GHO};
-                color: {C.PRI};
-            }}
-        """)
-        
-        for action_name, cmd in [
-            ("🖼 Crear imagen", "/imagen "),
-            ("🎵 Crear audio", "/audio "),
-            ("🎬 Crear video", "/video "),
-            ("🤖 Agentes", "/agentes "),
-            ("📁 Sesiones", "/sesiones ")
-        ]:
-            act = QAction(action_name, self)
-            act.triggered.connect(lambda checked, c=cmd: self._insert_tool_cmd(c))
-            self._tools_menu.addAction(act)
-            
-        self._tools_btn.setMenu(self._tools_menu)
-        row.addWidget(self._tools_btn)
-
-        self._input = QLineEdit()
-        self._input.setPlaceholderText("Type a command or question…")
-        self._input.setFont(QFont("Segoe UI", 12))
-        self._input.setFixedHeight(34)
-        self._input.setStyleSheet(f"""
-            QLineEdit {{
-                background: #000d14; color: {C.WHITE};
-                border: 1px solid {C.BORDER}; border-radius: 3px; padding: 3px 7px;
-            }}
-            QLineEdit:focus {{ border: 1px solid {C.PRI}; }}
-        """)
-        self._input.returnPressed.connect(self._send)
-        row.addWidget(self._input)
-
-        send = QPushButton("▸")
-        send.setFixedSize(34, 34)
-        send.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
-        send.setCursor(Qt.CursorShape.PointingHandCursor)
-        send.setStyleSheet(f"""
-            QPushButton {{
-                background: {C.PANEL}; color: {C.PRI};
-                border: 1px solid {C.PRI_DIM}; border-radius: 3px;
-            }}
-            QPushButton:hover {{ background: {C.PRI_GHO}; border: 1px solid {C.PRI}; }}
-        """)
-        send.clicked.connect(self._send)
-        row.addWidget(send)
-        return row
-
     def _insert_tool_cmd(self, cmd_prefix: str):
-        self._input.setText(cmd_prefix)
-        self._input.setFocus()
+        self._chat_bar.text_input.setText(cmd_prefix)
+        self._chat_bar.text_input.setFocus()
         
     def _set_audio_engine(self, mode: str, trigger_callback: bool = True):
         if mode == "gemini":
@@ -844,18 +659,18 @@ class MainWindow(QMainWindow):
         
         if stt == "gemini":
             self._audio_gemini_btn.setStyleSheet(f"""
-                QPushButton {{ background: {C.PRI}; color: #001a22; border: none; border-radius: 4px; }}
+                QPushButton {{ background: {C.PRI}; color: #001a22; border: none; border-radius: 10px; }}
             """)
             self._audio_local_btn.setStyleSheet(f"""
-                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 4px; }}
+                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 10px; }}
                 QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
             """)
         else:
             self._audio_local_btn.setStyleSheet(f"""
-                QPushButton {{ background: {C.GREEN}; color: #001a0d; border: none; border-radius: 4px; }}
+                QPushButton {{ background: {C.GREEN}; color: #001a0d; border: none; border-radius: 10px; }}
             """)
             self._audio_gemini_btn.setStyleSheet(f"""
-                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 4px; }}
+                QPushButton {{ background: #000d12; color: {C.TEXT_DIM}; border: 1px solid {C.BORDER}; border-radius: 10px; }}
                 QPushButton:hover {{ color: {C.TEXT}; border-color: {C.BORDER_B}; }}
             """)
 
@@ -874,7 +689,7 @@ class MainWindow(QMainWindow):
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background: transparent; color: {color};
-                    border: 1px solid {C.BORDER}; border-radius: 3px;
+                    border: 1px solid {C.BORDER}; border-radius: 10px;
                     padding: 0px 8px;
                 }}
                 QPushButton:hover {{
@@ -913,15 +728,14 @@ class MainWindow(QMainWindow):
         self._log.append_log("SYS: Engine reset triggered.")
 
     def _on_toggle_config(self):
-        """Toggle the active tab in the right panel between Chat and Config."""
-        if hasattr(self, '_right_tabs'):
-            current_idx = self._right_tabs.currentIndex()
-            if current_idx == 0:
-                self._right_tabs.setCurrentIndex(1)
-                self._log.append_log("SYS: Se abrieron los ajustes en el panel derecho.")
+        """Toggle between Console and Config tabs."""
+        if hasattr(self, '_settings_panel'):
+            is_visible = self._settings_panel.isVisible()
+            self._settings_panel.setVisible(not is_visible)
+            if not is_visible:
+                self._log.append_log("SYS: Panel de ajustes abierto.")
             else:
-                self._right_tabs.setCurrentIndex(0)
-                self._log.append_log("SYS: Se cerraron los ajustes.")
+                self._log.append_log("SYS: Panel de ajustes cerrado.")
 
     def _refresh_right_model_combo(self, provider: str):
         """Populate the right-panel model combo based on the active provider."""
@@ -992,7 +806,7 @@ class MainWindow(QMainWindow):
             short = model_id.split("/")[-1].split(":")[0]
             self._log.append_log(f"SYS: Model set to {short}")
             # Keep the config-tab combo in sync
-            config_bar = getattr(self, '_config_bar', None)
+            config_bar = getattr(self, '_settings_panel', None)
             if config_bar:
                 if provider == "openrouter" and hasattr(config_bar, '_or_model_combo'):
                     _populate_or_combo(config_bar._or_model_combo, model_id)
@@ -1013,8 +827,7 @@ class MainWindow(QMainWindow):
         cat  = _file_category(p)
         icon, _ = _FILE_ICONS.get(cat, _FILE_ICONS["unknown"])
         size = _fmt_size(p.stat().st_size)
-        self._file_hint.setText(f"{icon}  {p.name}  ·  {size}  ·  Tell JARVIS what to do with it")
-        self._log.append_log(f"FILE: {p.name} ({size}) loaded")
+        self._log.append_log(f"📎 {icon} {p.name} ({size}) — {cat}")
         if self.on_text_command:
             msg = (
                 f"[FILE_UPLOADED] path={path} | name={p.name} | "
@@ -1023,6 +836,31 @@ class MainWindow(QMainWindow):
                 f"({size}) has been uploaded and ask what they'd like to do with it."
             )
             threading.Thread(target=self.on_text_command, args=(msg,), daemon=True).start()
+
+    def _on_folder_selected(self, path: str):
+        self._current_file = path
+        from pathlib import Path as _P
+        p = _P(path)
+        self._log.append_log(f"📁 Carpeta seleccionada: {p.name} — {_fmt_size(_P(path).stat().st_size) if _P(path).stat else '...'}")
+        if self.on_text_command:
+            msg = (
+                f"[FOLDER_UPLOADED] path={path} | name={p.name} | "
+                f"The user has selected a folder '{p.name}'. Ask what they'd like to do with it."
+            )
+            threading.Thread(target=self.on_text_command, args=(msg,), daemon=True).start()
+
+    def _show_permissions(self):
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            "🛡 Panel de Permisos",
+            "⚙ Permisos disponibles:\n\n"
+            "• 🎙 Micrófono: Activado\n"
+            "• 📷 Captura de pantalla: Activada\n"
+            "• 💻 Control del sistema: Restringido\n"
+            "• 📁 Acceso a archivos: Permitido\n\n"
+            "🔐 Próximamente: permisos granulares por proveedor y agente."
+        )
 
     def _toggle_mute(self):
         self._muted = not self._muted
@@ -1057,7 +895,7 @@ class MainWindow(QMainWindow):
             self._mute_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: #140006; color: {C.MUTED_C};
-                    border: 1px solid {C.MUTED_C}; border-radius: 3px;
+                    border: 1px solid {C.MUTED_C}; border-radius: 10px;
                 }}
             """)
         else:
@@ -1065,15 +903,13 @@ class MainWindow(QMainWindow):
             self._mute_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: #00140a; color: {C.GREEN};
-                    border: 1px solid {C.GREEN}; border-radius: 3px;
+                    border: 1px solid {C.GREEN}; border-radius: 10px;
                 }}
                 QPushButton:hover {{ background: #001f10; }}
             """)
 
-    def _send(self):
-        txt = self._input.text().strip()
+    def _send_text(self, txt: str):
         if not txt: return
-        self._input.clear()
         self._log.append_log(f"You: {txt}")
         if self.on_text_command:
             threading.Thread(target=self.on_text_command, args=(txt,), daemon=True).start()
@@ -1082,41 +918,10 @@ class MainWindow(QMainWindow):
         self._current_state = state
         self.hud.state    = state
         self.hud.speaking = (state == "SPEAKING")
-        self._refresh_provider_buttons()
+        self._log.set_thinking(state == "THINKING")
 
     def _update_provider_status(self, statuses: dict):
         self._provider_statuses = statuses
-        self._refresh_provider_buttons()
-
-    def _refresh_provider_buttons(self):
-        if not hasattr(self, '_provider_statuses'): return
-        cfg = load_config()
-        active = cfg.get("selected_provider", "ollama")
-        is_processing = self._current_state in ("THINKING", "SPEAKING")
-
-        def _get_dot(prov_key: str) -> str:
-            if active == prov_key and is_processing: return "🟡"
-            return "🟢" if self._provider_statuses.get(prov_key, False) else "🔴"
-
-        if hasattr(self, '_ollama_btn'):
-            self._ollama_btn.setText(f"{_get_dot('ollama')} OLLAMA (OLL)")
-        if hasattr(self, '_lm_btn'):
-            self._lm_btn.setText(f"{_get_dot('lmstudio')} LM STUDIO (LM)")
-        if hasattr(self, '_or_btn'):
-            self._or_btn.setText(f"{_get_dot('openrouter')} OPENROUTER (OR)")
-
-        if hasattr(self, '_provider_lbl'):
-            prov_name = {"gemini": "GEMINI", "ollama": "OLLAMA", "openrouter": "OPENROUTER", "lmstudio": "LM STUDIO"}.get(active, active)
-            dot_act = _get_dot(active)
-            self._provider_lbl.setText(f"{dot_act}  {prov_name}")
-            
-            if hasattr(self, '_model_action_btn'):
-                if active == "openrouter":
-                    self._model_action_btn.setText("🌐")
-                    self._model_action_btn.setToolTip("Abrir OpenRouter Models en el navegador")
-                else:
-                    self._model_action_btn.setText("📁")
-                    self._model_action_btn.setToolTip(f"Abrir carpeta de modelos de {prov_name}")
 
     def _check_config(self) -> bool:
         return is_configured()
@@ -1155,8 +960,8 @@ class MainWindow(QMainWindow):
         # Update provider indicator
         if hasattr(self, '_provider_lbl'):
             self._provider_lbl.setText(f"◈  {prov_name.upper()}")
-        if hasattr(self, '_config_bar'):
-            self._config_bar.update_status(provider)
+        if hasattr(self, '_settings_panel'):
+            self._settings_panel.update_status(provider)
 
     def closeEvent(self, event):
         if hasattr(self, "_status_worker") and self._status_worker:
@@ -1167,24 +972,70 @@ class MainWindow(QMainWindow):
         cfg = load_config()
         active = cfg.get("selected_provider", "ollama")
         if active == "ollama":
-            path = "~/.ollama/models"
-            if _OS == "Windows": path = "~/.ollama/models"
-            elif _OS == "Darwin": path = "~/.ollama/models"
-            else: path = "/usr/share/ollama/.ollama/models"
-            path = os.path.expanduser(path)
-            if not os.path.exists(path):
-                os.makedirs(path, exist_ok=True)
-            if _OS == "Windows": os.startfile(path)
-            elif _OS == "Darwin": subprocess.run(["open", path])
-            else: subprocess.run(["xdg-open", path])
+            from PyQt6.QtWidgets import QFileDialog
+            import os, subprocess
+            
+            # Asegurar que Ollama esté corriendo
+            def _start_ollama():
+                if _OS == "Windows":
+                    ollama_app = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe")
+                    if os.path.exists(ollama_app):
+                        subprocess.Popen([ollama_app])
+                elif _OS == "Darwin":
+                    subprocess.Popen(["open", "-a", "Ollama"])
+            
+            import threading
+            threading.Thread(target=_start_ollama, daemon=True).start()
+
+            base_path = os.path.expanduser("~/.ollama/models/manifests/registry.ollama.ai/library")
+            if _OS == "Windows":
+                base_path = os.path.expanduser("~\\.ollama\\models\\manifests\\registry.ollama.ai\\library")
+                
+            if not os.path.exists(base_path):
+                os.makedirs(base_path, exist_ok=True)
+                
+            file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar Modelo de Ollama", base_path)
+            if file_path:
+                try:
+                    file_path_norm = os.path.normpath(file_path)
+                    base_path_norm = os.path.normpath(base_path)
+                    if file_path_norm.startswith(base_path_norm):
+                        rel_path = os.path.relpath(file_path_norm, base_path_norm)
+                        model_name = rel_path.replace(os.sep, ':')
+                        if model_name:
+                            self._right_model_combo.addItem(model_name, model_name)
+                            self._right_model_combo.setCurrentIndex(self._right_model_combo.count() - 1)
+                except Exception:
+                    pass
             
         elif active == "lmstudio":
-            path = os.path.expanduser("~/.cache/lm-studio/models")
-            if not os.path.exists(path):
-                os.makedirs(path, exist_ok=True)
-            if _OS == "Windows": os.startfile(path)
-            elif _OS == "Darwin": subprocess.run(["open", path])
-            else: subprocess.run(["xdg-open", path])
+            model_id = self._right_model_combo.currentData()
+            if not model_id:
+                model_id = self._right_model_combo.currentText()
+                
+            def _setup_lm_studio():
+                lms_exe_path = os.path.expandvars(r"%LOCALAPPDATA%\LM-Studio\LM Studio.exe")
+                if os.path.exists(lms_exe_path):
+                    subprocess.Popen([lms_exe_path])
+                
+                lms_cli_path = os.path.expanduser(r"~/.lmstudio/bin/lms.exe")
+                if os.path.exists(lms_cli_path):
+                    # Start server
+                    subprocess.Popen([lms_cli_path, "server", "start"], creationflags=0x08000000)
+                    import time
+                    time.sleep(3) # Wait for server to init
+                    if model_id and model_id != "local-model":
+                        subprocess.Popen([lms_cli_path, "load", str(model_id)], creationflags=0x08000000)
+                else:
+                    path = os.path.expanduser("~/.cache/lm-studio/models")
+                    if not os.path.exists(path):
+                        os.makedirs(path, exist_ok=True)
+                    if _OS == "Windows": os.startfile(path)
+                    elif _OS == "Darwin": subprocess.run(["open", path])
+                    else: subprocess.run(["xdg-open", path])
+            
+            import threading
+            threading.Thread(target=_setup_lm_studio, daemon=True).start()
             
         elif active == "openrouter":
             import webbrowser
@@ -1218,7 +1069,7 @@ class JarvisUI:
 
     @property
     def current_file(self) -> str | None:
-        return self._win._drop_zone.current_file()
+        return self._win._current_file
 
     @property
     def on_text_command(self):

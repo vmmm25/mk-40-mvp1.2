@@ -2,39 +2,68 @@ from PyQt6.QtGui import QColor
 
 class Theme:
     # ── Core backgrounds ────────────────────────────────────────────────
-    BG        = "#020408"   # Black-void background
-    PANEL     = "#07090f"   # Dark panel
-    PANEL2    = "#0a0c14"   # Slightly lighter panel
-    DARK      = "#04060b"   # Deepest dark (header/footer)
+    BG        = "#1e1e1e"   # macOS Dark Mode background
+    PANEL     = "#252526"   # Dark panel
+    PANEL2    = "#2d2d30"   # Slightly lighter panel
+    DARK      = "#181818"   # Deepest dark (header/footer)
 
     # ── Borders ─────────────────────────────────────────────────────────
-    BORDER    = "#1a0a04"   # Subtle dark-red border
-    BORDER_B  = "#ff3c0055" # Glowing red border (semi-transparent)
-    BORDER_A  = "#2a1008"   # Mid-tone border
+    BORDER    = "#3e3e42"   # Subtle border
+    BORDER_B  = "#007acc55" # Glowing border (semi-transparent)
+    BORDER_A  = "#454545"   # Mid-tone border
 
-    # ── Primary accent — Iron Man Orange-Red ────────────────────────────
-    PRI       = "#ff5500"   # Arc reactor orange
-    PRI_DIM   = "#7a2800"   # Dimmed orange
-    PRI_GHO   = "#1a0800"   # Ghost orange (hover background)
+    # ── Primary accent (Dynamic) ─────────────────────────────────────────
+    PRI       = "#007acc"   # Default macOS Blue
+    PRI_DIM   = "#005a9e"   # Dimmed primary
+    PRI_GHO   = "#003355"   # Ghost primary (hover background)
 
     # ── Secondary accents ───────────────────────────────────────────────
-    ACC       = "#ff8c00"   # Gold-orange (secondary)
+    ACC       = "#ff8c00"   # Gold-orange
     ACC2      = "#cc3300"   # Deep red accent
 
     # ── Status colors ───────────────────────────────────────────────────
-    GREEN     = "#00ff88"   # Neon green (online / active)
+    GREEN     = "#00c853"   # macOS/Neon green
     GREEN_D   = "#007744"   # Dark green
-    RED       = "#ff0040"   # Alarm red
-    MUTED_C   = "#441122"   # Muted/dimmed red
+    RED       = "#ff3b30"   # macOS red
+    MUTED_C   = "#441122"   # Muted red
 
     # ── Text ─────────────────────────────────────────────────────────────
-    TEXT      = "#f0e0d0"   # Warm off-white text
-    TEXT_DIM  = "#7a5040"   # Dimmed text
-    TEXT_MED  = "#c8a090"   # Medium text
+    TEXT      = "#ffffff"   # White text
+    TEXT_DIM  = "#a0a0a5"   # Dimmed text
+    TEXT_MED  = "#cccccc"   # Medium text
     WHITE     = "#ffffff"
 
     # ── Misc ─────────────────────────────────────────────────────────────
-    BAR_BG    = "#0f0604"   # Progress bar background
+    BAR_BG    = "#1a1a1a"   # Progress bar background
+
+    @classmethod
+    def set_provider_theme(cls, provider: str):
+        """Update the theme's primary accent color based on the active provider."""
+        if provider == "gemini":
+            cls.PRI       = "#4db8ff" # Light Blue
+            cls.PRI_DIM   = "#1f80c2"
+            cls.PRI_GHO   = "#002a4d"
+            cls.BORDER_B  = "#4db8ff55"
+        elif provider == "ollama":
+            cls.PRI       = "#00e5ff" # Cyan/Teal (Cyberpunk)
+            cls.PRI_DIM   = "#0099ab"
+            cls.PRI_GHO   = "#003b42"
+            cls.BORDER_B  = "#00e5ff55"
+        elif provider == "openrouter":
+            cls.PRI       = "#00ff88" # Neon Green
+            cls.PRI_DIM   = "#00a855"
+            cls.PRI_GHO   = "#00331a"
+            cls.BORDER_B  = "#00ff8855"
+        elif provider == "lmstudio":
+            cls.PRI       = "#ffb300" # Amber/Yellow
+            cls.PRI_DIM   = "#cc8c00"
+            cls.PRI_GHO   = "#4d3500"
+            cls.BORDER_B  = "#ffb30055"
+        else:
+            cls.PRI       = "#ff5500" # Iron Man Orange fallback
+            cls.PRI_DIM   = "#7a2800"
+            cls.PRI_GHO   = "#1a0800"
+            cls.BORDER_B  = "#ff550055"
 
 
 def qcol(h: str, a: int = 255) -> QColor:
@@ -45,9 +74,9 @@ def qcol(h: str, a: int = 255) -> QColor:
 
 PROVIDER_COLORS = {
     "gemini":     {"primary": "#4db8ff", "bg": "#001833", "name": "Gemini"},
-    "ollama":     {"primary": "#e0e0e0", "bg": "#111111", "name": "Ollama"},
-    "openrouter": {"primary": "#00e5a0", "bg": "#00221a", "name": "OpenRouter"},
-    "lmstudio":   {"primary": "#ff8c00", "bg": "#1a0e00", "name": "LM Studio"},
+    "ollama":     {"primary": "#00e5ff", "bg": "#002b33", "name": "Ollama"},
+    "openrouter": {"primary": "#00ff88", "bg": "#00221a", "name": "OpenRouter"},
+    "lmstudio":   {"primary": "#ffb300", "bg": "#1a1100", "name": "LM Studio"},
 }
 
 

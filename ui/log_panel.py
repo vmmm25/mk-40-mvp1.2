@@ -14,8 +14,20 @@ class LogWidget(QTextEdit):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        from PyQt6.QtWidgets import QLabel
+        from PyQt6.QtCore import QTimer
+        
         self.setReadOnly(True)
         self.setFont(QFont("Segoe UI", 12))
+        
+        # Overlay label for the spinner
+        self._spinner_lbl = QLabel(self)
+        self._spinner_lbl.setStyleSheet(f"color: {C.ACC2}; background: transparent; font-weight: bold;")
+        self._spinner_lbl.hide()
+        self._spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        self._spinner_idx = 0
+        self._spinner_timer = QTimer(self)
+        self._spinner_timer.timeout.connect(self._update_spinner)
         self.setStyleSheet(f"""
             QTextEdit {{
                 background: {C.PANEL};
@@ -44,6 +56,32 @@ class LogWidget(QTextEdit):
         self._tmr = QTimer(self)
         self._tmr.timeout.connect(self._step)
         self._sig.connect(self._enqueue)
+
+    def _update_spinner(self):
+        self._spinner_idx = (self._spinner_idx + 1) % len(self._spinner_chars)
+        self._spinner_lbl.setText(f"Procesando {self._spinner_chars[self._spinner_idx]}")
+        self._spinner_lbl.adjustSize()
+        self._spinner_lbl.move(
+            self.viewport().width() - self._spinner_lbl.width() - 10,
+            self.viewport().height() - self._spinner_lbl.height() - 10
+        )
+
+    def set_thinking(self, thinking: bool):
+        if thinking:
+            self._spinner_lbl.show()
+            self._spinner_timer.start(100)
+            self._update_spinner()
+        else:
+            self._spinner_lbl.hide()
+            self._spinner_timer.stop()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        if self._spinner_lbl.isVisible():
+            self._spinner_lbl.move(
+                self.viewport().width() - self._spinner_lbl.width() - 10,
+                self.viewport().height() - self._spinner_lbl.height() - 10
+            )
 
     def append_log(self, text: str):
         self._sig.emit(text)
