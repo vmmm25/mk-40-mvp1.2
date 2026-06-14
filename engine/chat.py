@@ -10,6 +10,7 @@ from memory.config_manager import load_config, get_model
 from tools.declarations import TOOL_DECLARATIONS
 from tools import TOOL_IMPLEMENTATIONS
 from engine.events import engine_stop
+from engine.smart_router import SmartRouter
 from engine.audio import (
     find_fallback_device, 
     _clean_text_for_tts, 
@@ -34,6 +35,7 @@ class JarvisChat:
         self.cfg = load_config()
         self.voice_enabled = self.cfg.get("voice_wrapper_enabled", False)
         self._is_playing_tts = False
+        self.router = SmartRouter()
 
     def _on_text_command(self, text: str):
         if not self._loop or engine_stop.is_set():
@@ -69,10 +71,12 @@ class JarvisChat:
             cfg = load_config()
             selected_prov = cfg.get("selected_provider", "gemini")
             new_model = get_model(selected_prov)
-            if hasattr(self.provider, 'model'):
-                self.provider.model = new_model
+
+            # ── Smart Router: pick best model for this message ──
+            routed_model = self.router.select(text, selected_prov, new_model)
+            self.provider.model = routed_model
             if hasattr(self.provider, 'config') and hasattr(self.provider.config, 'model'):
-                self.provider.config.model = new_model
+                self.provider.config.model = routed_model
 
             response = await self.provider.tool_chat_loop(
                 messages=self._history,
@@ -82,11 +86,17 @@ class JarvisChat:
             )
 
             self._history.append(response)
-            self.ui.write_log(f"Jarvis: {response.content}")
+            short_model = routed_model.split("/")[-1].split(":")[0]
+            self.ui.write_log(f"{selected_prov.upper()}/{short_model}: {response.content}")
             response_content = response.content
 
             # ── History cap: keep system prompt + last N exchanges ──
-            self._trim_history(max_messages=50)
+            # Local providers (ollama, lmstudio) have tighter context windows (~4K),
+            # so we keep fewer messages. Cloud providers have 32K-128K+ context.
+            provider_name = getattr(self.provider, 'name', '').lower()
+            is_local = provider_name in ('ollama', 'lmstudio')
+            max_msgs = 20 if is_local else 50
+            self._trim_history(max_messages=max_msgs)
 
         except Exception as e:
             self.ui.write_log(f"ERR: {str(e)}")
@@ -128,13 +138,22 @@ class JarvisChat:
 
         Uses FIFO eviction: older user/assistant exchanges are dropped.
         The system prompt (index 0) is always preserved.
+
+        Token budget estimate (for reference when tuning):
+        - System prompt + memory: ~600-1000 tokens
+        - Each user/assistant pair: ~200-500 tokens
+        - Tool call chains can add 2-4 extra messages per turn
+        - Local models typically have 4096-8192 context windows
+        - Cloud models typically have 32000-128000+ context windows
         """
         if len(self._history) <= max_messages:
             return
         # Preserve system prompt (index 0), drop oldest messages beyond cap
         # Keep system + last (max_messages - 1) messages
+        prev_count = len(self._history)
         self._history = [self._history[0]] + self._history[-(max_messages - 1):]
-        logger.info(f"History trimmed to {len(self._history)} messages")
+        dropped = prev_count - len(self._history)
+        logger.info(f"History trimmed: {prev_count} → {len(self._history)} ({dropped} messages dropped)")
 
     def _build_chat_system_prompt(self) -> str:
         from datetime import datetime

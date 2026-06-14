@@ -225,7 +225,7 @@ class JarvisLive:
 
                             full_out = " ".join(out_buf).strip()
                             if full_out:
-                                self.ui.write_log(f"Jarvis: {full_out}")
+                                self.ui.write_log(f"GEMINI/gemini-live: {full_out}")
                             out_buf = []
 
                     if response.tool_call:

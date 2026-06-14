@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 
 from memory.config_manager import load_config, save_config, get_model, set_model
 from ui.theme import Theme as C, PROVIDER_COLORS, get_openrouter_color as _get_openrouter_color
+from core.model_registry import badged_name
 from providers.lmstudio_control import (
     find_lmstudio_path, find_lms_cli_path, get_downloaded_models,
     launch_lmstudio, quit_lmstudio,
@@ -78,11 +79,12 @@ _OR_FREE_MODELS: list[tuple[str, str]] = [
 
 
 def _populate_or_combo(combo: "QComboBox", saved_model: str) -> None:
-    """Fill a QComboBox with _OR_FREE_MODELS and pre-select the saved model."""
+    """Fill a QComboBox with badged model names and pre-select the saved model."""
     combo.blockSignals(True)
     combo.clear()
     for mid, desc in _OR_FREE_MODELS:
-        combo.addItem(desc, mid)
+        display = badged_name(mid, desc)
+        combo.addItem(display, mid)
     # Pre-select saved model (or first entry if not found)
     for i in range(combo.count()):
         if combo.itemData(i) == saved_model:
@@ -94,12 +96,12 @@ def _populate_or_combo(combo: "QComboBox", saved_model: str) -> None:
 # ── Shared style sheets ──────────────────────────────────────────
 _INPUT_STYLE = (
     "QLineEdit { background: #000d14; color: #d8f8ff; border: 1px solid #0d3347;"
-    " border-radius: 3px; padding: 2px 6px; }"
+    " border-radius: 10px; padding: 2px 6px; }"
     "QLineEdit:focus { border: 1px solid #00d4ff; }"
 )
 _COMBO_STYLE = (
     "QComboBox { background: #000d12; color: #8ffcff;"
-    " border: 1px solid #0d3347; border-radius: 4px; padding: 2px 8px; }"
+    " border: 1px solid #0d3347; border-radius: 10px; padding: 2px 8px; }"
     "QComboBox:hover { border: 1px solid #1a5c7a; }"
     "QComboBox::drop-down { border: none; width: 20px; }"
     "QComboBox QAbstractItemView { background: #000d12; color: #8ffcff;"
@@ -148,7 +150,7 @@ class ConfigToolbar(QWidget):
         btn.setStyleSheet(f"""
             QPushButton {{
                 background: {C.DARK}; color: {color};
-                border: 1px solid {C.BORDER_B}; border-radius: 4px;
+                border: 1px solid {C.BORDER_B}; border-radius: 10px;
                 padding: 2px 10px;
             }}
             QPushButton:hover {{
@@ -597,7 +599,7 @@ class ConfigToolbar(QWidget):
         self._auto_detect_btn.setStyleSheet(f"""
             QPushButton {{
                 background: {C.GREEN}; color: {C.DARK};
-                border: 1px solid {C.GREEN}; border-radius: 4px; padding: 2px 10px; font-weight: bold;
+                border: 1px solid {C.GREEN}; border-radius: 10px; padding: 2px 10px; font-weight: bold;
             }}
         """)
 
@@ -850,7 +852,7 @@ class ConfigToolbar(QWidget):
             self._lm_model_status.setStyleSheet(f"color: {C.RED}; background: transparent;")
 
     def _save_lm_model(self, *args, silent: bool = False):
-        """Save LM Studio model selection, sync right-panel, restart engine."""
+        """Save LM Studio model selection, restart engine."""
         model_id = self._lm_model_combo.currentData()
         if model_id:
             set_model(model_id, "lmstudio")
@@ -858,26 +860,10 @@ class ConfigToolbar(QWidget):
                 short_name = model_id.split("/")[-1].split(":")[0]
                 self._lm_model_status.setText(f"✓ Seleccionado: {short_name}")
                 self._lm_model_status.setStyleSheet(f"color: {C.GREEN}; background: transparent;")
-            # Keep right-panel combo in sync
-            right_combo = self._main_win._right_model_combo
-            if hasattr(right_combo, 'blockSignals'):
-                right_combo.blockSignals(True)
-                right_combo.clear()
-                # Re-populate with just models from combo
-                for i in range(self._lm_model_combo.count()):
-                    mid = self._lm_model_combo.itemData(i)
-                    name = self._lm_model_combo.itemText(i)
-                    right_combo.addItem(name, mid)
-                # Select saved
-                for i in range(right_combo.count()):
-                    if right_combo.itemData(i) == model_id:
-                        right_combo.setCurrentIndex(i)
-                        break
-                right_combo.blockSignals(False)
-            # Trigger engine restart
+            # Trigger engine restart; _refresh_right_model_combo handles the right combo
             cfg = load_config()
             provider = cfg.get("selected_provider", "gemini")
-            if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
+            if provider == "lmstudio" and hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
                 self._main_win._on_provider_changed(provider)
         else:
             if not silent:
@@ -950,7 +936,7 @@ class ConfigToolbar(QWidget):
             self._save_lm_url_btn.setStyleSheet(f"""
                 QPushButton {{
                     background: {C.DARK}; color: {C.GREEN};
-                    border: 1px solid {C.GREEN}; border-radius: 3px;
+                    border: 1px solid {C.GREEN}; border-radius: 10px;
                     padding: 2px 8px;
                 }}
             """)
@@ -970,7 +956,7 @@ class ConfigToolbar(QWidget):
             self._lm_auto_toggle.setStyleSheet(f"""
                 QPushButton {{
                     background: {C.GREEN}22; color: {C.GREEN};
-                    border: 1px solid {C.GREEN}; border-radius: 3px;
+                    border: 1px solid {C.GREEN}; border-radius: 10px;
                 }}
             """)
         else:
@@ -978,7 +964,7 @@ class ConfigToolbar(QWidget):
             self._lm_auto_toggle.setStyleSheet(f"""
                 QPushButton {{
                     background: transparent; color: {C.TEXT_DIM};
-                    border: 1px solid {C.BORDER}; border-radius: 3px;
+                    border: 1px solid {C.BORDER}; border-radius: 10px;
                 }}
             """)
 
@@ -1181,12 +1167,12 @@ class ConfigToolbar(QWidget):
                 cfg = load_config()
                 provider = cfg.get("selected_provider", "gemini")
                 if provider == "ollama":
+                    # Just sync the combo — setCurrentIndex triggers
+                    # _on_right_model_changed → save + engine restart
                     for i in range(right_combo.count()):
                         if right_combo.itemData(i) == model_id or right_combo.itemText(i) == model_id:
                             right_combo.setCurrentIndex(i)
                             break
-                    if hasattr(self._main_win, '_on_provider_changed') and self._main_win._on_provider_changed:
-                        self._main_win._on_provider_changed(provider)
 
 
     def _open_folder(self, path: str):

@@ -135,10 +135,15 @@ class LMStudioProvider(BaseProvider):
                 except Exception:
                     pass
 
+            # LM Studio manages context window internally per model/hardware.
+            # We cap max_tokens conservatively for local models to avoid
+            # context overflow (Ollama equivalent: num_ctx=4096).
+            output_tokens = min(self.config.max_tokens, 2048)
+
             payload = {
                 "messages": ls_messages,
                 "temperature": self.config.temperature,
-                "max_tokens": self.config.max_tokens,
+                "max_tokens": output_tokens,
                 "stream": False,
             }
 
@@ -198,10 +203,13 @@ class LMStudioProvider(BaseProvider):
                 except Exception:
                     pass
 
+            # Same conservative cap as non-streaming
+            output_tokens = min(self.config.max_tokens, 2048)
+
             payload = {
                 "messages": ls_messages,
                 "temperature": self.config.temperature,
-                "max_tokens": self.config.max_tokens,
+                "max_tokens": output_tokens,
                 "stream": True,
             }
 

@@ -52,6 +52,7 @@ DEFAULT_CONFIG = {
     "whisper_model": "",
     "piper_path": "",
     "piper_model": "",
+    "mcp_servers": {},
 }
 
 # Cache configuration

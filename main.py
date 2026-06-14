@@ -88,6 +88,8 @@ def main():
             try:
                 async def run_engine():
                     try:
+                        from services.mcp.integration import init_mcp_servers
+                        await init_mcp_servers(ui)
                         await engine.run()
                     finally:
                         if hasattr(engine, "provider") and hasattr(engine.provider, "close"):
